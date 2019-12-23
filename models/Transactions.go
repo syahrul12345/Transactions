@@ -1,30 +1,43 @@
 package models
 
 import (
-	"bytes"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	"strconv"
 	"transactions/utils"
 )
 
+//Transaction represents a go-struct of the transaction dump
 type Transaction struct {
-	txHash  string
-	version uint32
+	Version    uint32
+	InputCount uint64
+	TxIns      []TxIn
+}
+
+//TxIn represents a Transaction Input Object
+type TxIn struct {
+	PrevTx    string
+	PrevIndex string
+	ScriptSig string
+	Sequence  string
 }
 
 //Parse a transaction from the given transactionhash
 func Parse(txHash string) *Transaction {
 	versionHash := txHash[0:8]
 	version := GetVersion(versionHash)
-	inputcount := GetInputs(txHash)
-	fmt.Println(inputcount)
-	res := utils.EncodeToLittleEndian(inputcount)
-	fmt.Println(res)
+	//Get the hasRemoved, which is the hash without the version and input count
+	inputcount, hashRemoved := utils.GetInputs(txHash)
+	txInList := make([]TxIn, 0)
+	for i := 1; i <= int(inputcount); i++ {
+		txIn := ParseTxIn(hashRemoved)
+		txInList = append(txInList, txIn)
+	}
+
+	// res := utils.EncodeToLittleEndian(inputcount)
 	return &Transaction{
-		txHash,
 		version,
+		inputcount,
+		txInList,
 	}
 }
 
@@ -35,69 +48,31 @@ func GetVersion(versionHash string) uint32 {
 	//Conver the integer to a byte array
 	intBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(intBytes, uint32(versionInt))
-	//Create a reader for the created byte array
-	reader := bytes.NewReader(intBytes)
-	//Define the result
-	var res uint32
-	binary.Read(reader, binary.LittleEndian, &res)
-	return res
+	data := binary.LittleEndian.Uint32(intBytes)
+	return data
 
 }
 
-//GetInputs will decode the number of inputs from the string
-func GetInputs(inputHash string) string {
-	//Check the byte at position 9,10
-	i := inputHash[8:10]
-	marker, _ := strconv.ParseUint(i, 16, 8)
-	// Check the value of the marker
-	if marker == 0xfd {
-		//253 to 2^16-1
-		//Take the next 2 bytes or 4 chars
-		numberString := inputHash[10:14]
-		number, _ := strconv.ParseUint(numberString, 16, 16)
-		//Create a empty byte array of the approriate size
-		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
-		//Put the parsed number in the byte array
-		binary.BigEndian.PutUint16(numberBytes, uint16(number))
-		//Create a new reader that reads the byte array filled with the bytes
-		reader := bytes.NewReader(numberBytes)
-		//Conver the byte array in little endian byte array
-		var res int16
-		binary.Read(reader, binary.LittleEndian, &res)
-		return strconv.Itoa(int(res))
+//ParseTxIn Creates a TxIn object given a hash where the version and input count has been removed
+func ParseTxIn(cleanedHash string) TxIn {
+	//Get the 32 bytes which represent the prevTX hash
+	prevHash := cleanedHash[0:64]
+	txHash := utils.ToLittleHex(prevHash)
+
+	//Get the next 4 bytes which represent the prev index
+	prevIndex := cleanedHash[64:72]
+	txIndex := utils.ToLittleHex(prevIndex)
+
+	//Dummy script
+	dummyScript := "deadbeef"
+	dummyHash := utils.ToLittleHex(dummyScript)
+	//Sequence
+	dummySequence := "beefdead"
+	sequenceHash := utils.ToLittleHex(dummySequence)
+	return TxIn{
+		txHash,
+		txIndex,
+		dummyHash,
+		sequenceHash,
 	}
-	if marker == 0xfe {
-		//2^16 to 2^32 -1
-		//take the next 4 bytes or 8 chars
-		numberString := inputHash[10:18]
-		number, _ := strconv.ParseUint(numberString, 16, 32)
-		//Create a byte array of the approriate size
-		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
-		//Put the parsed number in the byte array
-		binary.BigEndian.PutUint32(numberBytes, uint32(number))
-		//Create a reader
-		reader := bytes.NewReader(numberBytes)
-		//Conver the byte array to little endian
-		var res int32
-		binary.Read(reader, binary.LittleEndian, &res)
-		return strconv.Itoa(int(res))
-	}
-	if marker == 0xff {
-		//For number between 2^32 and 2^54-1
-		//Take the next 8 bytes or 16 chars
-		numberString := inputHash[10:26]
-		number, _ := strconv.ParseUint(numberString, 16, 64)
-		//Create an empoty byte array
-		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
-		//Put the number in the byte array as big endian
-		binary.BigEndian.PutUint64(numberBytes, number)
-		//Create a reader
-		reader := bytes.NewReader(numberBytes)
-		//Conver it to small endian
-		var res int64
-		binary.Read(reader, binary.LittleEndian, &res)
-		return strconv.Itoa(int(res))
-	}
-	//Marker itself is the number
-	return strconv.Itoa(int(marker))
 }
