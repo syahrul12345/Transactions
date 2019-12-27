@@ -49,17 +49,17 @@ func EncodeToLittleEndian(input uint64) string {
 	return "FAILED"
 }
 
-//GetInputs will decode the number of inputs from the incoming Transaction dump.
+//ReadVarInt will read the variable integer will decode the number of inputs from the incoming Transaction dump.
 //It also returns the transaction dump without the version and input count
-func GetInputs(txHash string) (uint64, string) {
+func ReadVarInt(txHash string) (uint64, string) {
 	//Check the byte at position 9,10
-	i := txHash[8:10]
+	i := txHash[0:2]
 	marker, _ := strconv.ParseUint(i, 16, 8)
 	// Check the value of the marker
 	if marker == 0xfd {
 		//253 to 2^16-1
 		//Take the next 2 bytes or 4 chars
-		numberString := txHash[10:14]
+		numberString := txHash[2:6]
 		number, _ := strconv.ParseUint(numberString, 16, 16)
 		//Create a empty byte array of the approriate size
 		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
@@ -70,12 +70,12 @@ func GetInputs(txHash string) (uint64, string) {
 		//Conver the byte array in little endian byte array
 		var res uint16
 		binary.Read(reader, binary.LittleEndian, &res)
-		return uint64(res), txHash[14:]
+		return uint64(res), txHash[6:]
 	}
 	if marker == 0xfe {
 		//2^16 to 2^32 -1
 		//take the next 4 bytes or 8 chars
-		numberString := txHash[10:18]
+		numberString := txHash[2:10]
 		number, _ := strconv.ParseUint(numberString, 16, 32)
 		//Create a byte array of the approriate size
 		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
@@ -86,12 +86,12 @@ func GetInputs(txHash string) (uint64, string) {
 		//Conver the byte array to little endian
 		var res uint32
 		binary.Read(reader, binary.LittleEndian, &res)
-		return uint64(res), txHash[18:]
+		return uint64(res), txHash[10:]
 	}
 	if marker == 0xff {
 		//For number between 2^32 and 2^54-1
 		//Take the next 8 bytes or 16 chars
-		numberString := txHash[10:26]
+		numberString := txHash[2:18]
 		number, _ := strconv.ParseUint(numberString, 16, 64)
 		//Create an empoty byte array
 		numberBytes := make([]byte, hex.DecodedLen(len(numberString)))
@@ -102,15 +102,15 @@ func GetInputs(txHash string) (uint64, string) {
 		//Conver it to small endian
 		var res uint64
 		binary.Read(reader, binary.LittleEndian, &res)
-		return uint64(res), txHash[64:]
+		return uint64(res), txHash[18:]
 	}
 	//Marker itself is the number
-	return uint64(marker), txHash[10:]
+	return uint64(marker), txHash[2:]
 }
 
-//ToLittleHex will convert the byte array into the little-endian hexadecimal of the number, in string
+//ToBigHex will convert the byte array into the big-endian hexadecimal of the number, in string
 //representation
-func ToLittleHex(input string) string {
+func ToBigHex(input string) string {
 	decodedHash, _ := hex.DecodeString(input)
 	//reverse the decodedHash as it's actually in little endian
 	for i := len(decodedHash)/2 - 1; i >= 0; i-- {
@@ -120,4 +120,11 @@ func ToLittleHex(input string) string {
 	//Encode it to a string representation of the bytes in hexadecimal
 	res := hex.EncodeToString(decodedHash)
 	return res
+}
+
+//FromLittleHex will convert a hexadecimal stirng representing a number as a little endian to the correct number
+func FromLittleHex(input string) uint32 {
+	prevIndex, _ := hex.DecodeString(input)
+	data := binary.LittleEndian.Uint32(prevIndex)
+	return data
 }

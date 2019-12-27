@@ -13,20 +13,14 @@ type Transaction struct {
 	TxIns      []TxIn
 }
 
-//TxIn represents a Transaction Input Object
-type TxIn struct {
-	PrevTx    string
-	PrevIndex string
-	ScriptSig string
-	Sequence  string
-}
+// For every transaction, we want to remove the byte array once it';s parsed
 
 //Parse a transaction from the given transactionhash
 func Parse(txHash string) *Transaction {
 	versionHash := txHash[0:8]
 	version := GetVersion(versionHash)
 	//Get the hasRemoved, which is the hash without the version and input count
-	inputcount, hashRemoved := utils.GetInputs(txHash)
+	inputcount, hashRemoved := utils.ReadVarInt(txHash[8:])
 	txInList := make([]TxIn, 0)
 	for i := 1; i <= int(inputcount); i++ {
 		txIn := ParseTxIn(hashRemoved)
@@ -51,28 +45,4 @@ func GetVersion(versionHash string) uint32 {
 	data := binary.LittleEndian.Uint32(intBytes)
 	return data
 
-}
-
-//ParseTxIn Creates a TxIn object given a hash where the version and input count has been removed
-func ParseTxIn(cleanedHash string) TxIn {
-	//Get the 32 bytes which represent the prevTX hash
-	prevHash := cleanedHash[0:64]
-	txHash := utils.ToLittleHex(prevHash)
-
-	//Get the next 4 bytes which represent the prev index
-	prevIndex := cleanedHash[64:72]
-	txIndex := utils.ToLittleHex(prevIndex)
-
-	//Dummy script
-	dummyScript := "deadbeef"
-	dummyHash := utils.ToLittleHex(dummyScript)
-	//Sequence
-	dummySequence := "beefdead"
-	sequenceHash := utils.ToLittleHex(dummySequence)
-	return TxIn{
-		txHash,
-		txIndex,
-		dummyHash,
-		sequenceHash,
-	}
 }
