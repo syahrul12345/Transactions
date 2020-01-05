@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"transactions/utils"
 )
 
@@ -26,9 +25,8 @@ func ParseTxIn(cleanedHash string) TxIn {
 	//Dummy script
 	// script := ParseScript(cleanedHash)
 	script := ParseScript(cleanedHash)
-	fmt.Println(len(script.Commands))
 	//Sequence is from the next 4 bytes
-	dummySequence := "00010000"
+	dummySequence := "0f000000"
 	seequenceInt := utils.FromLittleHex(dummySequence)
 
 	return TxIn{
@@ -38,5 +36,3 @@ func ParseTxIn(cleanedHash string) TxIn {
 		seequenceInt,
 	}
 }
-
-//Serialize a TxIn Object
