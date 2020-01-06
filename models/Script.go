@@ -18,7 +18,7 @@ type Script struct {
 
 //ParseScript will parse the hexadecimal string and return the corresponding script.
 func ParseScript(s string) *Script {
-	s = "6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
+	// s = "6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
 	//Conver the string to a bytearray, whcih represents the scriptObject
 	commands := [][]byte{}
 	// byteHash, _ := hex.DecodeString(s)
@@ -26,7 +26,7 @@ func ParseScript(s string) *Script {
 	length, cleaned := utils.ReadVarInt(s)
 	byteHash, _ := hex.DecodeString(cleaned)
 	count := uint64(0)
-	for count < length {
+	for count < length && len(byteHash) > 0 {
 		//Get the current int
 		currentInt := uint64(byteHash[0])
 		byteHash = byteHash[1:]
@@ -35,7 +35,7 @@ func ParseScript(s string) *Script {
 			element := byteHash[0:currentInt]
 			commands = append(commands, element)
 			byteHash = byteHash[currentInt:]
-			count = count + currentInt
+			count = count + currentInt + 1
 		} else if currentInt == 76 {
 			//The next 1 byte is the length to be read
 			nextByte := byteHash[0]
@@ -45,7 +45,7 @@ func ParseScript(s string) *Script {
 			element := byteHash[0:bytesToRead]
 			byteHash = byteHash[bytesToRead:]
 			commands = append(commands, element)
-			count = count + bytesToRead
+			count = count + bytesToRead + 1
 		} else if currentInt == 77 {
 			nextByte := byteHash[0:2]
 			byteHash = byteHash[2:]
@@ -53,7 +53,7 @@ func ParseScript(s string) *Script {
 			element := byteHash[0:bytesToRead]
 			byteHash = byteHash[bytesToRead:]
 			commands = append(commands, element)
-			count = count + bytesToRead
+			count = count + bytesToRead + 2
 		} else {
 			bigInt := big.NewInt(0).SetUint64(currentInt)
 			opCode := bigInt.Bytes()
@@ -91,16 +91,20 @@ func (script *Script) RawSerialize() string {
 				len := len(scriptObj)
 				lenHex := strconv.FormatInt(int64(len), 16)
 				result = result + lenHex
+				totalLen = totalLen + 1
 			} else if len(scriptObj) > 75 && len(scriptObj) < 0x100 {
 				// Encode the OP_PUSHDATA1, Encode the length
 				lenHex := strconv.FormatInt(76, 16)
 				result = result + lenHex
 				//Encode the length
 				result = result + strconv.FormatInt(int64(len(scriptObj)), 16)
+				//The byte which handles the length should be added too
+				totalLen = totalLen + 1
 			} else if len(scriptObj) >= 0x100 && len(scriptObj) <= 520 {
 				lenHex := strconv.FormatInt(77, 1)
 				result = result + lenHex
 				result = result + strconv.FormatInt(int64(len(scriptObj)), 16)
+				totalLen = totalLen + 2
 			} else {
 				return "ERROR!"
 			}
