@@ -1,11 +1,13 @@
 package models
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
+	"transactions/opcodes"
 	"transactions/utils"
 )
 
@@ -17,12 +19,10 @@ type Script struct {
 }
 
 //ParseScript will parse the hexadecimal string and return the corresponding script.
-func ParseScript(s string) *Script {
-	// s = "6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
+func ParseScript(s string) (*Script, []byte) {
 	//Conver the string to a bytearray, whcih represents the scriptObject
+
 	commands := [][]byte{}
-	// byteHash, _ := hex.DecodeString(s)
-	// length := uint64(byteHash[0])
 	length, cleaned := utils.ReadVarInt(s)
 	byteHash, _ := hex.DecodeString(cleaned)
 	count := uint64(0)
@@ -30,12 +30,14 @@ func ParseScript(s string) *Script {
 		//Get the current int
 		currentInt := uint64(byteHash[0])
 		byteHash = byteHash[1:]
+		//Includes the current int into the count
+		count = count + 1
 		if currentInt >= 1 && currentInt <= 75 {
 			//Read the next n element
 			element := byteHash[0:currentInt]
 			commands = append(commands, element)
 			byteHash = byteHash[currentInt:]
-			count = count + currentInt + 1
+			count = count + currentInt
 		} else if currentInt == 76 {
 			//The next 1 byte is the length to be read
 			nextByte := byteHash[0]
@@ -62,11 +64,11 @@ func ParseScript(s string) *Script {
 	}
 	if count != length {
 		fmt.Println("failed to parse the script")
-		return nil
+		return nil, []byte{}
 	}
 	return &Script{
 		commands,
-	}
+	}, byteHash
 }
 
 //Serialize will serialize a script object and return the string
@@ -114,4 +116,37 @@ func (script *Script) RawSerialize() string {
 	}
 	hex := utils.EncodeToLittleEndian(uint64(totalLen))
 	return hex + result
+}
+
+//Add will add the command arrays of the two scripts object
+func (script *Script) Add(script2 *Script) *Script {
+	newCommands := append(script.Commands, script2.Commands...)
+	return &Script{
+		newCommands,
+	}
+}
+
+//Evaluate will evaluate the commands in the script object, return true if succesfull
+func (script *Script) Evaluate() bool {
+	commands := script.Commands
+	stack := [][]byte{}
+	// altstack := [][]byte{}
+	for len(commands) > 0 {
+		// Get the first item and remove it
+		command := commands[0]
+		command = []byte{99}
+		if len(command) <= 2 {
+			// It's an OPCODE
+			//convert to number
+			buf := bytes.NewBuffer(command)
+			number, _ := binary.ReadUvarint(buf)
+			//Lets get the operation
+			operation := opcodes.GetOPCODELIST()[int(number)]
+			//Call the function
+			operation.(func([][]byte, [][]byte) bool)(stack, commands)
+
+		}
+	}
+
+	return true
 }

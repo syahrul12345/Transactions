@@ -8,12 +8,6 @@ import (
 	"strconv"
 )
 
-//Decodes a string representing a hexadecimal encoded number in little-endian
-//into a human-readable format. Accepts the target to be decoded
-func FromLittle(hexadecimal string) {
-
-}
-
 //Encodes a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
 //Input string mus be in base 10
 func EncodeToLittleEndian(input uint64) string {
@@ -25,7 +19,8 @@ func EncodeToLittleEndian(input uint64) string {
 	check3, _ := big.NewInt(0).SetString("0x100000000"[2:], 16)
 	check4, _ := big.NewInt(0).SetString("0x10000000000000000"[2:], 16)
 	if bigInt.Cmp(check1) < 0 {
-		return bigInt.Text(16)
+		// If it's less than 256, it can be fit in one byte but
+		return hex.EncodeToString(bigInt.Bytes())
 	} else if bigInt.Cmp(check2) < 0 {
 		numberInt, _ := strconv.ParseUint(someNumber, 10, 16)
 		numberByte := make([]byte, 2)
@@ -108,7 +103,7 @@ func ReadVarInt(txHash string) (uint64, string) {
 	return uint64(marker), txHash[2:]
 }
 
-//ToBigHex will convert the byte array into the big-endian hexadecimal of the number, in string
+//ToBigHex will convert the string into the big-endian hexadecimal of the number, in string
 //representation
 func ToBigHex(input string) string {
 	decodedHash, _ := hex.DecodeString(input)
