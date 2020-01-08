@@ -45,7 +45,7 @@ func Parse(txHash string) *Transaction {
 	}
 }
 
-//Serializes the TX
+//Serialize the TX
 func (tx Transaction) Serialize() string {
 	// Lets first parse the version
 	var res string
