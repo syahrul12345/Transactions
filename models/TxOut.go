@@ -7,7 +7,7 @@ import (
 
 //TxOut is an output from the transaciton dump
 type TxOut struct {
-	Amount       uint64
+	Amount       uint64 `json:"value"`
 	ScriptPubKey Script
 }
 

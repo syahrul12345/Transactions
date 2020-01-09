@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"transactions/models"
 )
 
 func main() {
-	// txHash := "0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1100000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600"
 	txHash2 := "010000000456919960ac691763688d3d3bcea9ad6ecaf875df5339e148a1fc61c6ed7a069e0100" +
 		"00006a47304402204585bcdef85e6b1c6af5c2669d4830ff86e42dd205c0e089bc2a821657e951" +
 		"c002201024a10366077f87d6bce1f7100ad8cfa8a064b39d4e8fe4ea13a7b71aa8180f012102f0" +
@@ -24,8 +24,18 @@ func main() {
 		"e7520d55feffffff0251430f00000000001976a914ab0c0b2e98b1ab6dbf67d4750b0a56244948" +
 		"a87988ac005a6202000000001976a9143c82d7df364eb6c75be8c80df2b3eda8db57397088ac46" +
 		"430600"
-	models.Parse(txHash2)
+	tx := models.Parse(txHash2, true)
+	val := tx.Fee()
+	fmt.Println(val)
+	//Create only one instance of a txFetcher, don't waste resources!
+	//TxFetcher is an object that will
+	// txFetcher := models.CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	// for _, txIn := range tx.TxIns {
+	// 	val := txIn.Value(true, txFetcher)
+	// 	scriptPubKey := txIn.GetScriptPubKey(true, txFetcher)
+	// 	fmt.Println(val)
+	// 	fmt.Println(scriptPubKey)
+	// 	fmt.Println(txIn.ScriptSig)
+	// }
 
-	txFetcher := models.CreateTxFetcher("https://blockchain.info/rawblock/", true)
-	txFetcher.Fetch("0000000000000bae09a7a393a8acded75aa67e46cb81f7acaa5ad94f9eacd103", true, true)
 }

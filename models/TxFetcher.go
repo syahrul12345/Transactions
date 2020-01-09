@@ -1,24 +1,22 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 )
 
-//TxFetcher will get the details of the latest Tx From the Blockchain. By default, it should ping itself, but we can get it from a third party too
+//TxFetcher will get the details of the latest Tx From the Blockchain. By default, it should ping itself, but we can get it from a third party too.
+//Crate only one txfetcher instance.
 type TxFetcher struct {
 	url     string
 	testnet bool
+	TxIDs   []string
 }
 
-//BitcoinResponse is the block information
-type BitcoinResponse struct {
-	Ver  uint64
-	Time uint64
-	Bits uint64
-	NTX  uint64 `json:"n_tx"`
+type txOutTemp struct {
+	Value  uint64 `json:"value"`
+	Script string `json:"script"`
 }
 
 //CreateTxFetcher will crate a new TxFetcher Object
@@ -26,17 +24,18 @@ func CreateTxFetcher(url string, testnet bool) *TxFetcher {
 	return &TxFetcher{
 		url,
 		testnet,
+		[]string{},
 	}
 }
 
-//GetUrl will return the url of the TxFetcher object
-func (txFetcher *TxFetcher) GetUrl() string {
+//GetURL will return the url of the TxFetcher object
+func (txFetcher *TxFetcher) GetURL() string {
 	return txFetcher.url
 }
 
 //Fetch will fetch a transaction dump if a txid is given. Have to provide testnet and fresh flags. TxID has to be in hexadecimal
-func (txFetcher *TxFetcher) Fetch(txID string, testnet bool, fresh bool) string {
-	url := fmt.Sprintf("%s%s", txFetcher.GetUrl(), txID)
+func (txFetcher *TxFetcher) Fetch(txID string, testnet bool, fresh bool) []TxOut {
+	url := fmt.Sprintf("%s%s?format=hex", txFetcher.GetURL(), txID)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println(err)
@@ -47,8 +46,17 @@ func (txFetcher *TxFetcher) Fetch(txID string, testnet bool, fresh bool) string 
 	if err != nil {
 		fmt.Println(err)
 	}
-	var bitcoinResponse BitcoinResponse
-	json.Unmarshal(body, &bitcoinResponse)
-	fmt.Println(&bitcoinResponse)
-	return string(body)
+	txInfo := string(body)
+	tx := Parse(txInfo, testnet)
+	//Hold a a cache of 20 TxIds
+	if len(txFetcher.TxIDs) < 20 {
+		txFetcher.TxIDs = append(txFetcher.TxIDs, tx.ID())
+	} else {
+		txFetcher.TxIDs = txFetcher.TxIDs[1:19]
+	}
+
+	// Create an array of standard TxOuts
+	return tx.TxOuts
 }
+
+//Write to the cache

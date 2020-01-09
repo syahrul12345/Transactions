@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 //Transaction represents a go-struct of the transaction dump
 type Transaction struct {
+	Testnet  bool
 	Version  uint32
 	TxIns    []TxIn
 	TxOuts   []TxOut
@@ -18,7 +20,7 @@ type Transaction struct {
 // For every transaction, we want to remove the byte array once it';s parsed
 
 //Parse a transaction from the given transactionhash
-func Parse(txHash string) *Transaction {
+func Parse(txHash string, testnet bool) *Transaction {
 	versionHash := txHash[0:8]
 	version := GetVersion(versionHash)
 	//Get the hasRemoved, which is the hash without the version and input count
@@ -38,6 +40,7 @@ func Parse(txHash string) *Transaction {
 	}
 	lockTime := utils.FromLittleHex(hashRemoved)
 	return &Transaction{
+		testnet,
 		version,
 		txInList,
 		txOutList,
@@ -69,6 +72,48 @@ func (tx Transaction) Serialize() string {
 	binary.LittleEndian.PutUint32(buf2, tx.Locktime)
 	res = res + hex.EncodeToString(buf2)
 	return res
+}
+
+//ID returns the transaction ID of the transaciton data
+func (tx Transaction) ID() string {
+	return hex.EncodeToString(tx.hash())
+}
+
+func (tx Transaction) hash() []byte {
+	// Executes two rounds of sha256 which is hash 256
+	byteData, _ := hex.DecodeString(tx.Serialize())
+	firstRound := sha256.Sum256(byteData)
+	secondRound := sha256.Sum256(firstRound[:])
+	return secondRound[:]
+}
+
+//Fee : Get the Fee to be earned by the miner
+func (tx Transaction) Fee() uint64 {
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	// Fee is simply the sum of input - outpun
+	var inputSum uint64
+	var outputSum uint64
+	//Asynchronous code part
+	inputAmounts := make(chan uint64, len(tx.TxIns))
+	for i, txIn := range tx.TxIns {
+		//Do the call asynchronously
+		go func(i int, txIn TxIn) {
+			inputAmounts <- txIn.Value(tx.Testnet, txFetcher)
+		}(i, txIn)
+	}
+	//Count will check when to close the channel
+	var count int
+	for val := range inputAmounts {
+		count = count + 1
+		if count == len(tx.TxIns) {
+			close(inputAmounts)
+		}
+		inputSum = inputSum + val
+	}
+	for _, txOut := range tx.TxOuts {
+		outputSum = outputSum + txOut.Amount
+	}
+	return inputSum - outputSum
 }
 
 //GetVersion will ge the version of the transaction hash. It takes the version hash as input

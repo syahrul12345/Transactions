@@ -21,7 +21,6 @@ type Script struct {
 //ParseScript will parse the hexadecimal string and return the corresponding script.
 func ParseScript(s string) (*Script, []byte) {
 	//Conver the string to a bytearray, whcih represents the scriptObject
-
 	commands := [][]byte{}
 	length, cleaned := utils.ReadVarInt(s)
 	byteHash, _ := hex.DecodeString(cleaned)
