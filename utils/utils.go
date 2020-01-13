@@ -5,10 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"math/big"
+	"reflect"
+	"runtime"
 	"strconv"
 )
 
-//Encodes a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
+//EncodeToLittleEndian : a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
 //Input string mus be in base 10
 func EncodeToLittleEndian(input uint64) string {
 	// Some of the nubmers huge, use bigint
@@ -122,4 +124,9 @@ func FromLittleHex(input string) uint32 {
 	prevIndex, _ := hex.DecodeString(input)
 	data := binary.LittleEndian.Uint32(prevIndex)
 	return data
+}
+
+//GetFunctionName will get the function name
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }

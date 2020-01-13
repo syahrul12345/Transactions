@@ -45,7 +45,7 @@ func ParseTxIn(cleanedHash string) (TxIn, []byte) {
 	}, byteHash
 }
 
-//Serializes a TxIn object
+//Serialize : Serializes a TxIn object
 func (txIn *TxIn) Serialize() string {
 	// Convert all of this to the correct string in little endian
 	prevTx := txIn.PrevTx

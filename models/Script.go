@@ -126,26 +126,37 @@ func (script *Script) Add(script2 *Script) *Script {
 }
 
 //Evaluate will evaluate the commands in the script object, return true if succesfull
-func (script *Script) Evaluate() bool {
+// Excepts Z, which is a pointer to a list of commands.
+func (script *Script) Evaluate(z *[][]byte) bool {
 	commands := script.Commands
 	stack := [][]byte{}
 	// altstack := [][]byte{}
 	for len(commands) > 0 {
 		// Get the first item and remove it
 		command := commands[0]
-		command = []byte{99}
+		commands = append(commands[:0], commands[1:]...)
 		if len(command) <= 2 {
 			// It's an OPCODE
 			//convert to number
 			buf := bytes.NewBuffer(command)
 			number, _ := binary.ReadUvarint(buf)
+			fmt.Println(number)
 			//Lets get the operation
 			operation := opcodes.GetOPCODELIST()[int(number)]
 			//Call the function
-			operation.(func([][]byte, [][]byte) bool)(stack, commands)
-
+			res := operation.(func([][]byte, [][]byte) bool)(stack, commands)
+			fmt.Println(res)
+		} else {
+			stack = append(stack, command)
 		}
 	}
-
+	if len(stack) == 0 {
+		return false
+	}
+	lastItem := stack[len(stack)-1]
+	//If it's an empty byte array, return false. This means that iti is an empty bytestring
+	if len(lastItem) == 0 {
+		return false
+	}
 	return true
 }

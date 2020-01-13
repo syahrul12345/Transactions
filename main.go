@@ -25,17 +25,8 @@ func main() {
 		"a87988ac005a6202000000001976a9143c82d7df364eb6c75be8c80df2b3eda8db57397088ac46" +
 		"430600"
 	tx := models.Parse(txHash2, true)
-	val := tx.Fee()
-	fmt.Println(val)
-	//Create only one instance of a txFetcher, don't waste resources!
-	//TxFetcher is an object that will
-	// txFetcher := models.CreateTxFetcher("https://blockchain.info/rawtx/", true)
-	// for _, txIn := range tx.TxIns {
-	// 	val := txIn.Value(true, txFetcher)
-	// 	scriptPubKey := txIn.GetScriptPubKey(true, txFetcher)
-	// 	fmt.Println(val)
-	// 	fmt.Println(scriptPubKey)
-	// 	fmt.Println(txIn.ScriptSig)
-	// }
+	script := tx.TxIns[0].ScriptSig
+	res := script.Evaluate(nil)
+	fmt.Println(res)
 
 }
