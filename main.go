@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/syahrul12345/secp256k1"
 	"transactions/models"
 )
 
@@ -24,6 +25,8 @@ func main() {
 		"e7520d55feffffff0251430f00000000001976a914ab0c0b2e98b1ab6dbf67d4750b0a56244948" +
 		"a87988ac005a6202000000001976a9143c82d7df364eb6c75be8c80df2b3eda8db57397088ac46" +
 		"430600"
+	address := secp256k1.GetMainnetAddressFromPrivKey("123")
+	fmt.Println(address)
 	tx := models.Parse(txHash2, true)
 	script := tx.TxIns[0].ScriptSig
 	res := script.Evaluate(nil)

@@ -5,8 +5,10 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"math"
 
+	"github.com/syahrul12345/secp256k1"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -76,14 +78,14 @@ func GetOPCODELIST() map[int]interface{} {
 		160: op_greaterthan,
 		161: op_lessthanorequal,
 		162: op_greaterthanorequal,
-		// 163: op_min,
-		// 164: op_max,
-		// 165: op_within,
-		// 166: op_ripemd160,
-		// 167: op_sha1,
-		// 168: op_sha256,
-		// 169: op_hash160,
-		// 170: op_hash256,
+		163: op_min,
+		164: op_max,
+		165: op_within,
+		166: op_ripemd160,
+		167: op_sha1,
+		168: op_sha256,
+		169: op_hash160,
+		170: op_hash256,
 		// 172: op_checksig,
 		// 173: op_checksigverify,
 		// 174: op_checkmultisig,
@@ -894,7 +896,7 @@ func op_sha1(stack *[][]byte) bool {
 	}
 	tempStack := *stack
 	element := tempStack[len(tempStack)-1]
-	*stack = tempStack
+	*stack = tempStack[:len(tempStack)-1]
 	sha1Hasher := sha1.New()
 	sha1Hasher.Write(element)
 	hashBytes := sha1Hasher.Sum(nil)
@@ -908,7 +910,7 @@ func op_sha256(stack *[][]byte) bool {
 	}
 	tempStack := *stack
 	element := tempStack[len(tempStack)-1]
-	*stack = tempStack
+	*stack = tempStack[:len(tempStack)-1]
 	sha256Hasher := sha256.New()
 	sha256Hasher.Write(element)
 	hashBytes := sha256Hasher.Sum(nil)
@@ -921,7 +923,7 @@ func op_hash160(stack *[][]byte) bool {
 	}
 	tempStack := *stack
 	element := tempStack[len(tempStack)-1]
-	*stack = tempStack
+	*stack = tempStack[:len(tempStack)-1]
 	// Do a sha256 followed by a ripemd160
 	hash256 := sha256.Sum256(element)
 	ripemdHasher := ripemd160.New()
@@ -937,10 +939,96 @@ func op_hash256(stack *[][]byte) bool {
 	}
 	tempStack := *stack
 	element := tempStack[len(tempStack)-1]
-	*stack = tempStack
+	*stack = tempStack[:len(tempStack)-1]
 	// Do a 2 rounds of sha256
 	hash256 := sha256.Sum256(element)
 	hash256 = sha256.Sum256(hash256[:])
 	*stack = append(*stack, hash256[:])
 	return true
+}
+
+func op_checksig(stack *[][]byte, z string) bool {
+	if len(*stack) < 2 {
+		return false
+	}
+	//Get the last two variables
+	tempStack := *stack
+	sec := tempStack[len(tempStack)-1]
+	tempStack = tempStack[:len(tempStack)-1]
+	der := tempStack[len(tempStack)-1]
+	*stack = tempStack[:len(tempStack)-1]
+
+	point := secp256k1.ParseSec(hex.EncodeToString(sec))
+	signature := secp256k1.ParseDer(hex.EncodeToString(der))
+	if point.Verify(z, signature) {
+		*stack = append(*stack, encodeNum(1))
+	} else {
+		*stack = append(*stack, encodeNum(0))
+	}
+	return true
+}
+
+func op_checksigverify(stack *[][]byte, z string) bool {
+	return op_checksig(stack, z) && op_verify(stack)
+}
+
+func op_checkmultisig(stack *[][]byte, z string) bool {
+	// THIS IS NOT IMPLEMENTED YET
+	return true
+}
+
+func op_checkmultisigverify(stack *[][]byte, z string) bool {
+	return op_checkmultisig(stack, z) && op_verify(stack)
+}
+
+func op_checklocktimeverify(stack *[][]byte, locktime []byte, sequence []byte) bool {
+	lockTimeInt := binary.LittleEndian.Uint32(locktime)
+	sequenceInt := binary.LittleEndian.Uint32(sequence)
+	if sequenceInt == 0xffffffff {
+		return false
+	}
+	if len(*stack) < 1 {
+		return false
+	}
+	tempStack := *stack
+	element := decodeNum(tempStack[len(tempStack)-1])
+	if element < 0 {
+		return false
+	}
+	if element < 500000000 && lockTimeInt > 500000000 {
+		return false
+	}
+	if int64(lockTimeInt) < element {
+		return false
+	}
+	return true
+}
+
+func op_checksequenceverify(stack *[][]byte, version []byte, sequence []byte) bool {
+	versionInt := binary.LittleEndian.Uint32(version)
+	sequenceInt := binary.LittleEndian.Uint32(sequence)
+	if sequenceInt&(1<<31) == (1 << 31) {
+		return false
+	}
+	if len(*stack) < 1 {
+		return false
+	}
+	tempStack := *stack
+	element := decodeNum(tempStack[len(tempStack)-1])
+	if element < 0 {
+		return false
+	}
+	if element&(1<<31) == (1 << 31) {
+		if versionInt < 2 {
+			return false
+		} else if sequenceInt&(1<<31) == (1 << 31) {
+			return false
+		} else if uint32(element&(1<<22)) != sequenceInt&(1<<22) {
+			return false
+		} else if uint32(element&0xffff) > sequenceInt&0xffff {
+			return false
+		}
+	}
+	return true
+
 }
