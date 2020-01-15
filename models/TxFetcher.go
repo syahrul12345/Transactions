@@ -59,4 +59,20 @@ func (txFetcher *TxFetcher) Fetch(txID string, testnet bool, fresh bool) []TxOut
 	return tx.TxOuts
 }
 
-//Write to the cache
+//FetchTx : Get a tx object when provided a txId
+func (txFetcher *TxFetcher) FetchTx(txID string, testnet bool) *Transaction {
+	url := fmt.Sprintf("%s%s?format=hex", txFetcher.GetURL(), txID)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println(err)
+	}
+	//Close the body
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	txInfo := string(body)
+	tx := Parse(txInfo, testnet)
+	return tx
+}

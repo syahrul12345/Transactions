@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -127,33 +126,54 @@ func (script *Script) Add(script2 *Script) *Script {
 
 //Evaluate will evaluate the commands in the script object, return true if succesfull
 // Excepts Z, which is a pointer to a list of commands.
-func (script *Script) Evaluate(z *[][]byte) bool {
-	commands := script.Commands
-	stack := [][]byte{}
+func (script *Script) Evaluate(z string) bool {
+	commands := &script.Commands
+	stack := &[][]byte{}
+	altstack := &[][]byte{}
 	// altstack := [][]byte{}
-	for len(commands) > 0 {
+	for len(*commands) > 0 {
 		// Get the first item and remove it
-		command := commands[0]
-		commands = append(commands[:0], commands[1:]...)
-		if len(command) <= 2 {
-			// It's an OPCODE
-			//convert to number
-			buf := bytes.NewBuffer(command)
-			number, _ := binary.ReadUvarint(buf)
-			fmt.Println(number)
-			//Lets get the operation
+		tempCommands := *commands
+		// Pop of the first element
+		command := tempCommands[0]
+		*commands = append(tempCommands[:0], tempCommands[1:]...)
+		if len(command) == 1 {
+			// Conver to number and get the function called operation
+			number := command[0]
 			operation := opcodes.GetOPCODELIST()[int(number)]
-			//Call the function
-			res := operation.(func([][]byte, [][]byte) bool)(stack, commands)
-			fmt.Println(res)
+			if number == 99 || number == 100 {
+				// It's false. Use type assertion to conver thte interface to a function
+				if !operation.(func(*[][]byte, *[][]byte) bool)(stack, commands) {
+					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					return false
+				}
+			}
+			if number == 107 || number == 108 {
+				if !operation.(func(*[][]byte, *[][]byte) bool)(stack, altstack) {
+					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					return false
+				}
+			}
+			if number == 172 || number == 173 || number == 174 || number == 175 {
+				if !operation.(func(*[][]byte, string) bool)(stack, z) {
+					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					return false
+				}
+			} else {
+				if !operation.(func(*[][]byte) bool)(stack) {
+					fmt.Printf("Bad op for %s ", opcodes.GETOPCODENAMES()[int(number)])
+					return false
+				}
+			}
 		} else {
-			stack = append(stack, command)
+			*stack = append(*stack, command)
 		}
 	}
-	if len(stack) == 0 {
+	if len(*stack) == 0 {
 		return false
 	}
-	lastItem := stack[len(stack)-1]
+	tempStack := *stack
+	lastItem := tempStack[len(*stack)-1]
 	//If it's an empty byte array, return false. This means that iti is an empty bytestring
 	if len(lastItem) == 0 {
 		return false

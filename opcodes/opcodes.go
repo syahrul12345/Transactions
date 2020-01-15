@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math"
 
 	"github.com/syahrul12345/secp256k1"
@@ -100,6 +101,98 @@ func GetOPCODELIST() map[int]interface{} {
 		183: op_nop,
 		184: op_nop,
 		185: op_nop,
+	}
+	return OPCODELIST
+}
+
+//GETOPCODENAMES will return the opcode names
+func GETOPCODENAMES() map[int]string {
+	OPCODELIST := map[int]string{
+		0:   "op_0",
+		79:  "op_1negate",
+		81:  "op_1",
+		82:  "op_2",
+		83:  "op_3",
+		84:  "op_4",
+		85:  "op_5",
+		86:  "op_6",
+		87:  "op_7",
+		88:  "op_8",
+		89:  "op_9",
+		90:  "op_10",
+		91:  "op_11",
+		92:  "op_12",
+		93:  "op_13",
+		94:  "op_14",
+		95:  "op_15",
+		96:  "op_16",
+		97:  "op_nop",
+		99:  "op_if",
+		100: "op_notif",
+		105: "op_verify",
+		106: "op_return",
+		107: "op_toaltstack",
+		108: "op_fromaltstack",
+		109: "op_2drop",
+		110: "op_2dup",
+		111: "op_3dup",
+		112: "op_2over",
+		113: "op_2rot",
+		114: "op_2swap",
+		115: "op_ifdup",
+		116: "op_depth",
+		117: "op_drop",
+		118: "op_dup",
+		119: "op_nip",
+		120: "op_over",
+		121: "op_pick",
+		122: "op_roll",
+		123: "op_rot",
+		124: "op_swap",
+		125: "op_tuck",
+		130: "op_size",
+		135: "op_equal",
+		136: "op_equalverify",
+		139: "op_1add",
+		140: "op_1sub",
+		143: "op_negate",
+		144: "op_abs",
+		145: "op_not",
+		146: "op_0notequal",
+		147: "op_add",
+		148: "op_sub",
+		149: "op_mul",
+		154: "op_booland",
+		155: "op_boolor",
+		156: "op_numequal",
+		157: "op_numequalverify",
+		158: "op_numnotequal",
+		159: "op_lessthan",
+		160: "op_greaterthan",
+		161: "op_lessthanorequal",
+		162: "op_greaterthanorequal",
+		163: "op_min",
+		164: "op_max",
+		165: "op_within",
+		166: "op_ripemd160",
+		167: "op_sha1",
+		168: "op_sha256",
+		169: "op_hash160",
+		170: "op_hash256",
+		172: "op_checksig",
+		173: "op_checksigverify",
+		174: "op_checkmultisig",
+		175: "op_checkmultisigverify",
+		176: "op_nop",
+		177: "op_checklocktimeverify",
+		178: "op_checksequenceverify",
+		179: "op_nop",
+		180: "op_nop",
+		181: "op_nop",
+		182: "op_nop",
+		183: "op_nop",
+		184: "op_nop",
+		185: "op_nop",
 	}
 	return OPCODELIST
 }
@@ -930,7 +1023,7 @@ func op_hash160(stack *[][]byte) bool {
 	ripemdHasher.Write(hash256[:])
 	hashBytes := ripemdHasher.Sum(nil)
 	*stack = append(*stack, hashBytes)
-	return false
+	return true
 }
 
 func op_hash256(stack *[][]byte) bool {
@@ -957,14 +1050,15 @@ func op_checksig(stack *[][]byte, z string) bool {
 	tempStack = tempStack[:len(tempStack)-1]
 	der := tempStack[len(tempStack)-1]
 	*stack = tempStack[:len(tempStack)-1]
-
 	point := secp256k1.ParseSec(hex.EncodeToString(sec))
 	signature := secp256k1.ParseDer(hex.EncodeToString(der))
-	if point.Verify(z, signature) {
+	fmt.Println(point.Verify("0x"+z, signature))
+	if point.Verify("0x"+z, signature) {
 		*stack = append(*stack, encodeNum(1))
 	} else {
 		*stack = append(*stack, encodeNum(0))
 	}
+
 	return true
 }
 

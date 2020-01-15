@@ -141,3 +141,13 @@ func TestFee(t *testing.T) {
 		}
 	}
 }
+
+func TestSigHash(t *testing.T) {
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", false)
+	tx := txFetcher.FetchTx("452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03", false)
+	get := tx.SigHash(0, false)
+	want := "27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6"
+	if get != want {
+		t.Errorf("Expected the signature of the transaction to be %s, but got %s", want, get)
+	}
+}

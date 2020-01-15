@@ -24,8 +24,8 @@ func main() {
 		"e7520d55feffffff0251430f00000000001976a914ab0c0b2e98b1ab6dbf67d4750b0a56244948" +
 		"a87988ac005a6202000000001976a9143c82d7df364eb6c75be8c80df2b3eda8db57397088ac46" +
 		"430600"
-	tx := models.Parse(txHash2, false)
-	fmt.Println(tx.Fee())
-	fmt.Println(tx.ID())
+	tx := models.Parse(txHash2, true)
+	res := tx.VerifyInput(0)
+	fmt.Println(res)
 
 }
