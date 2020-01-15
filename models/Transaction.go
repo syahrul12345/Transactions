@@ -84,6 +84,11 @@ func (tx Transaction) hash() []byte {
 	byteData, _ := hex.DecodeString(tx.Serialize())
 	firstRound := sha256.Sum256(byteData)
 	secondRound := sha256.Sum256(firstRound[:])
+	// reverse it
+	for i := len(secondRound)/2 - 1; i >= 0; i-- {
+		opp := len(secondRound) - 1 - i
+		secondRound[i], secondRound[opp] = secondRound[opp], secondRound[i]
+	}
 	return secondRound[:]
 }
 
