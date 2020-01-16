@@ -6,9 +6,15 @@ github.com/syahrul12345/secp256k1 v0.0.0-20200114040826-f5afbafcc4da h1:z9qZvCmc
 github.com/syahrul12345/secp256k1 v0.0.0-20200114040826-f5afbafcc4da/go.mod h1:XcoTZpUHtIixJnyKygolmODtK962vnhupRY9bLlvu+8=
 github.com/syahrul12345/secp256k1 v0.0.0-20200115025726-8fd5a72b72d5 h1:0hQ5U3h4DaBpG6e3YAsiYZiC3kg02O/4e4XwxDus/UQ=
 github.com/syahrul12345/secp256k1 v0.0.0-20200115025726-8fd5a72b72d5/go.mod h1:XcoTZpUHtIixJnyKygolmODtK962vnhupRY9bLlvu+8=
+github.com/syahrul12345/secp256k1 v0.0.0-20200115121240-c0e4f4f62765 h1:6wfUWQuqvipPJzeefCbIgh6yXOGNsflf8wNagzrHGj4=
+github.com/syahrul12345/secp256k1 v0.0.0-20200115121240-c0e4f4f62765/go.mod h1:XcoTZpUHtIixJnyKygolmODtK962vnhupRY9bLlvu+8=
+github.com/syahrul12345/secp256k1 v0.0.0-20200116013957-0526067b4f94 h1:P3n54bClA7tO+hbhFuX1kBZHunmp41QeGIq+72gc5K0=
+github.com/syahrul12345/secp256k1 v0.0.0-20200116013957-0526067b4f94/go.mod h1:/xyJ62GAAszYhr2G3qw13wCAkZakManibFl8/84d3/M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191219195013-becbf705a915 h1:aJ0ex187qoXrJHPo8ZasVTASQB7llQP6YeNzgDALPRk=
 golang.org/x/crypto v0.0.0-20191219195013-becbf705a915/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d h1:2+ZP7EfsZV7Vvmx3TIqSlSzATMkTAKqM14YGFPoSKjI=
+golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

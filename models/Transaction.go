@@ -164,7 +164,7 @@ func (tx *Transaction) SigHash(index uint64, testnet bool) string {
 
 //VerifyInput : Verifies if an input, contained within the Tx object can be unlocked. Provide the index of the tx object
 func (tx *Transaction) VerifyInput(index uint64) bool {
-	txIn := tx.TxIns[0]
+	txIn := tx.TxIns[index]
 	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", true)
 	scriptPubKey := txIn.GetScriptPubKey(tx.Testnet, txFetcher)
 	// Get the signature z of the scriptSig for that input

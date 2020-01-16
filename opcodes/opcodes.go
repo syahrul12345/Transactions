@@ -1050,15 +1050,15 @@ func op_checksig(stack *[][]byte, z string) bool {
 	tempStack = tempStack[:len(tempStack)-1]
 	der := tempStack[len(tempStack)-1]
 	*stack = tempStack[:len(tempStack)-1]
-	point := secp256k1.ParseSec(hex.EncodeToString(sec))
-	signature := secp256k1.ParseDer(hex.EncodeToString(der))
-	fmt.Println(point.Verify("0x"+z, signature))
-	if point.Verify("0x"+z, signature) {
+	res, err := secp256k1.Verify(hex.EncodeToString(sec), hex.EncodeToString(der), z)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if res {
 		*stack = append(*stack, encodeNum(1))
 	} else {
 		*stack = append(*stack, encodeNum(0))
 	}
-
 	return true
 }
 
