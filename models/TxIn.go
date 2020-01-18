@@ -22,6 +22,7 @@ type TxIn struct {
 func ParseTxIn(cleanedHash string) (TxIn, []byte) {
 	//Get the 32 bytes which represent the prevTX hash
 	prevHash := cleanedHash[0:64]
+
 	txHash := utils.ToBigHex(prevHash)
 
 	//Get the next 4 bytes which represent the prev index
@@ -51,6 +52,7 @@ func (txIn *TxIn) Serialize() string {
 	prevTx := txIn.PrevTx
 	prevIndex := txIn.PrevIndex
 	scriptSig := txIn.ScriptSig
+
 	seq := txIn.Sequence
 
 	//toBigHex reverses a string from little to big hex, vice versa
@@ -69,7 +71,7 @@ func (txIn *TxIn) Serialize() string {
 //fetchTx : Fetch the previous Output for a given TxInput. Must pass a TxFetcher object and testnet flag.
 func (txIn *TxIn) fetchTx(testnet bool, txFetcher *TxFetcher) []TxOut {
 	// Each TxIn has a prevTx, which is a hash of a block which will return a raw transaction
-	return txFetcher.Fetch(txIn.PrevTx, true, true)
+	return txFetcher.Fetch(txIn.PrevTx, testnet, true)
 }
 
 //Value : Get the value of the corresponding UTXO to be spent for this input
@@ -83,5 +85,5 @@ func (txIn *TxIn) Value(testnet bool, txFetcher *TxFetcher) uint64 {
 func (txIn *TxIn) GetScriptPubKey(testnet bool, txFetcher *TxFetcher) *Script {
 	txOuts := txIn.fetchTx(testnet, txFetcher)
 	txIndex := txIn.PrevIndex
-	return &txOuts[txIndex].ScriptPubKey
+	return txOuts[txIndex-1].ScriptPubKey
 }

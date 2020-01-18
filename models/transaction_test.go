@@ -133,7 +133,7 @@ func TestFee(t *testing.T) {
 		},
 	}
 	for _, requirement := range requirements {
-		tx := Parse(requirement["input"], true)
+		tx := Parse(requirement["input"], false)
 		fee := tx.Fee()
 		feewant, _ := strconv.ParseUint(requirement["fee"], 10, 64)
 		if fee != feewant {
@@ -144,10 +144,36 @@ func TestFee(t *testing.T) {
 
 func TestSigHash(t *testing.T) {
 	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", false)
-	tx := txFetcher.FetchTx("452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03", false)
-	get := tx.SigHash(0, false)
+	tx := txFetcher.FetchTx("452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03")
+	get := tx.SigHash(0)
 	want := "27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6"
 	if get != want {
 		t.Errorf("Expected the signature of the transaction to be %s, but got %s", want, get)
+	}
+}
+
+func TestVerifyP2Pkh(t *testing.T) {
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", false)
+	tx := txFetcher.FetchTx("452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03")
+
+	verified := tx.Verify()
+	if !verified {
+		t.Errorf("Unable to verify with tx hash %s", "452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03")
+	}
+
+	txFetcher = CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	tx = txFetcher.FetchTx("5418099cc755cb9dd3ebc6cf1a7888ad53a1a3beb5a025bce89eb1bf7f1650a2")
+	verified = tx.Verify()
+	if !verified {
+		t.Errorf("Unable to verify with tx hash %s", "5418099cc755cb9dd3ebc6cf1a7888ad53a1a3beb5a025bce89eb1bf7f1650a2")
+	}
+}
+func TestSignInput(t *testing.T) {
+	// Doesn't work looks like its an invalid transaction.
+	txDump := "010000000199a24308080ab26e6fb65c4eccfadf76749bb5bfa8cb08f291320b3c21e56f0d0d00000000ffffffff02408af701000000001976a914d52ad7ca9b3d096a38e752c2018e6fbc40cdf26f88ac80969800000000001976a914507b27411ccf7f16f10297de6cef3f291623eddf88ac00000000"
+	tx := Parse(txDump, true)
+	res := tx.SignInput(0, "8675309")
+	if !res {
+		t.Error("Failed to sign the input succesfully")
 	}
 }

@@ -1048,7 +1048,9 @@ func op_checksig(stack *[][]byte, z string) bool {
 	tempStack := *stack
 	sec := tempStack[len(tempStack)-1]
 	tempStack = tempStack[:len(tempStack)-1]
+	// Last object, excluding the last byte... lol
 	der := tempStack[len(tempStack)-1]
+	der = der[:len(der)-1]
 	*stack = tempStack[:len(tempStack)-1]
 	res, err := secp256k1.Verify(hex.EncodeToString(sec), hex.EncodeToString(der), z)
 	if err != nil {

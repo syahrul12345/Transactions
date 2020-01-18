@@ -144,24 +144,24 @@ func (script *Script) Evaluate(z string) bool {
 			if number == 99 || number == 100 {
 				// It's false. Use type assertion to conver thte interface to a function
 				if !operation.(func(*[][]byte, *[][]byte) bool)(stack, commands) {
-					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					fmt.Printf("Bad op for %s\n", opcodes.GETOPCODENAMES()[int(number)])
 					return false
 				}
 			}
 			if number == 107 || number == 108 {
 				if !operation.(func(*[][]byte, *[][]byte) bool)(stack, altstack) {
-					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					fmt.Printf("Bad op for %s\n", opcodes.GETOPCODENAMES()[int(number)])
 					return false
 				}
 			}
 			if number == 172 || number == 173 || number == 174 || number == 175 {
 				if !operation.(func(*[][]byte, string) bool)(stack, z) {
-					fmt.Printf("Bad op for %s", opcodes.GETOPCODENAMES()[int(number)])
+					fmt.Printf("Bad op for %s\n", opcodes.GETOPCODENAMES()[int(number)])
 					return false
 				}
 			} else {
 				if !operation.(func(*[][]byte) bool)(stack) {
-					fmt.Printf("Bad op for %s ", opcodes.GETOPCODENAMES()[int(number)])
+					fmt.Printf("Bad op for %s\n", opcodes.GETOPCODENAMES()[int(number)])
 					return false
 				}
 			}

@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"strconv"
 	"transactions/utils"
+
+	"github.com/syahrul12345/secp256k1"
 )
 
 //Transaction represents a go-struct of the transaction dump
@@ -38,6 +40,7 @@ func Parse(txHash string, testnet bool) *Transaction {
 		hashRemoved = hex.EncodeToString(byteHash)
 		txOutList = append(txOutList, txOut)
 	}
+
 	lockTime := utils.FromLittleHex(hashRemoved)
 	return &Transaction{
 		testnet,
@@ -93,7 +96,7 @@ func (tx *Transaction) hash() []byte {
 }
 
 //SigHash will calculate the signature hash for a particular TxIn, given the TxIn's index in the TxIns list.
-func (tx *Transaction) SigHash(index uint64, testnet bool) string {
+func (tx *Transaction) SigHash(index uint64) string {
 	// Let's rebuild a custom serialization procedure.
 	buf := make([]byte, 4)
 	//Serialzie the byte
@@ -103,15 +106,14 @@ func (tx *Transaction) SigHash(index uint64, testnet bool) string {
 	varintString := utils.EncodeToLittleEndian(uint64(len(tx.TxIns)))
 	varIntByteArray, _ := hex.DecodeString(varintString)
 	buf = append(buf, varIntByteArray...)
-
-	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
 	for i, txIn := range tx.TxIns {
 		if uint64(i) == index {
 			// We replace the scriptsig with the script pub key
 			temp := &TxIn{
 				txIn.PrevTx,
 				txIn.PrevIndex,
-				*txIn.GetScriptPubKey(testnet, txFetcher),
+				*txIn.GetScriptPubKey(tx.Testnet, txFetcher),
 				txIn.Sequence,
 			}
 			tempSerialize, _ := hex.DecodeString(temp.Serialize())
@@ -165,17 +167,51 @@ func (tx *Transaction) SigHash(index uint64, testnet bool) string {
 //VerifyInput : Verifies if an input, contained within the Tx object can be unlocked. Provide the index of the tx object
 func (tx *Transaction) VerifyInput(index uint64) bool {
 	txIn := tx.TxIns[index]
-	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
 	scriptPubKey := txIn.GetScriptPubKey(tx.Testnet, txFetcher)
 	// Get the signature z of the scriptSig for that input
-	z := tx.SigHash(index, tx.Testnet)
+	z := tx.SigHash(index)
 	combinedScript := txIn.ScriptSig.Add(scriptPubKey)
-	return combinedScript.Evaluate(z)
+	return combinedScript.Evaluate("0x" + z)
+}
+
+// SignInput : Sign a input at inputIndex, with a provided privateKey.
+func (tx *Transaction) SignInput(inputIndex uint64, privateKey string) bool {
+	z := tx.SigHash(inputIndex)
+	signature, _ := secp256k1.Sign(privateKey, z)
+	der := signature.DER()
+	derBytes, _ := hex.DecodeString(der)
+	sigBytes := append(derBytes, byte(1))
+	// Set default compression as true
+	sec := secp256k1.GetSec(privateKey, true)
+	secBytes, _ := hex.DecodeString(sec)
+	//
+	tx.TxIns[inputIndex].ScriptSig = Script{
+		[][]byte{
+			sigBytes,
+			secBytes,
+		},
+	}
+	return tx.VerifyInput(inputIndex)
+
+}
+
+// Verify : Verifies if the transaction is correct
+func (tx *Transaction) Verify() bool {
+	if tx.Fee() < 0 {
+		return false
+	}
+	for i := range tx.TxIns {
+		if !tx.VerifyInput(uint64(i)) {
+			return false
+		}
+	}
+	return true
 }
 
 //Fee : Get the Fee to be earned by the miner
 func (tx *Transaction) Fee() uint64 {
-	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", true)
+	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
 	// Fee is simply the sum of input - outpun
 	var inputSum uint64
 	var outputSum uint64
@@ -211,4 +247,22 @@ func GetVersion(versionHash string) uint32 {
 	binary.BigEndian.PutUint32(intBytes, uint32(versionInt))
 	data := binary.LittleEndian.Uint32(intBytes)
 	return data
+}
+
+// CreateTxIn : Create an TxIn object with the provided prevtx,previd and empty scriptsig
+func CreateTxIn(prevTxID string, prevTxIndex uint32) *TxIn {
+	return &TxIn{
+		PrevTx:    prevTxID,
+		PrevIndex: prevTxIndex,
+		ScriptSig: Script{},
+		Sequence:  0xffffffff,
+	}
+}
+
+//CreateTxOut : Create a TxOut object with the provided Amount and script Object
+func CreateTxOut(amount uint64, scriptpubkey *Script) TxOut {
+	return TxOut{
+		Amount:       amount,
+		ScriptPubKey: scriptpubkey,
+	}
 }

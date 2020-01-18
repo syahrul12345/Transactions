@@ -8,7 +8,21 @@ import (
 //TxOut is an output from the transaciton dump
 type TxOut struct {
 	Amount       uint64 `json:"value"`
-	ScriptPubKey Script
+	ScriptPubKey *Script
+}
+
+//CreateScriptPubKeyForP2PKH : Creates a SCRIPTPUBKEY for use in p2pkh.
+func CreateScriptPubKeyForP2PKH(hash160 string) *Script {
+	hash160byte, _ := hex.DecodeString(hash160)
+	return &Script{
+		[][]byte{
+			[]byte{0x76},
+			[]byte{0xa9},
+			hash160byte,
+			[]byte{0x88},
+			[]byte{0xac},
+		},
+	}
 }
 
 //ParseTxOut will parse the transaction object and input a TxOut object
@@ -20,7 +34,7 @@ func ParseTxOut(cleanedHash string) (TxOut, []byte) {
 	script, byteHash := ParseScript(cleanedHash)
 	return TxOut{
 		amount,
-		*script,
+		script,
 	}, byteHash
 }
 
