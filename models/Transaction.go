@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 	"transactions/utils"
 
@@ -96,7 +97,7 @@ func (tx *Transaction) hash() []byte {
 }
 
 //SigHash will calculate the signature hash for a particular TxIn, given the TxIn's index in the TxIns list.
-func (tx *Transaction) SigHash(index uint64) string {
+func (tx *Transaction) SigHash(index uint64, redeemScript *Script) string {
 	// Let's rebuild a custom serialization procedure.
 	buf := make([]byte, 4)
 	//Serialzie the byte
@@ -109,16 +110,29 @@ func (tx *Transaction) SigHash(index uint64) string {
 	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
 	for i, txIn := range tx.TxIns {
 		if uint64(i) == index {
-			// We replace the scriptsig with the script pub key
-			temp := &TxIn{
-				txIn.PrevTx,
-				txIn.PrevIndex,
-				*txIn.GetScriptPubKey(tx.Testnet, txFetcher),
-				txIn.Sequence,
+			if redeemScript != nil {
+				// We replace the scriptsig with the script pub key
+				temp := &TxIn{
+					txIn.PrevTx,
+					txIn.PrevIndex,
+					*redeemScript,
+					txIn.Sequence,
+				}
+				tempSerialize, _ := hex.DecodeString(temp.Serialize())
+				// Append the new script object
+				buf = append(buf, tempSerialize...)
+			} else {
+				// We replace the scriptsig with the script pub key
+				temp := &TxIn{
+					txIn.PrevTx,
+					txIn.PrevIndex,
+					*txIn.GetScriptPubKey(tx.Testnet, txFetcher),
+					txIn.Sequence,
+				}
+				tempSerialize, _ := hex.DecodeString(temp.Serialize())
+				// Append the new script object
+				buf = append(buf, tempSerialize...)
 			}
-			tempSerialize, _ := hex.DecodeString(temp.Serialize())
-			// Append the new script object
-			buf = append(buf, tempSerialize...)
 		} else {
 			temp := &TxIn{
 				txIn.PrevTx,
@@ -170,14 +184,23 @@ func (tx *Transaction) VerifyInput(index uint64) bool {
 	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
 	scriptPubKey := txIn.GetScriptPubKey(tx.Testnet, txFetcher)
 	// Get the signature z of the scriptSig for that input
-	z := tx.SigHash(index)
+	var redeemScript *Script
+	if scriptPubKey.ISP2SH() {
+		fmt.Println("is p2sh")
+		redeemScriptCommand := txIn.ScriptSig.Commands[len(txIn.ScriptSig.Commands)-1]
+		redeemScriptString := utils.EncodeToLittleEndian(uint64(len(redeemScriptCommand))) + hex.EncodeToString(redeemScriptCommand)
+		redeemScript, _ = ParseScript(redeemScriptString)
+	} else {
+		redeemScript = nil
+	}
+	z := tx.SigHash(index, redeemScript)
 	combinedScript := txIn.ScriptSig.Add(scriptPubKey)
 	return combinedScript.Evaluate("0x" + z)
 }
 
 // SignInput : Sign a input at inputIndex, with a provided privateKey.
 func (tx *Transaction) SignInput(inputIndex uint64, privateKey string) bool {
-	z := tx.SigHash(inputIndex)
+	z := tx.SigHash(inputIndex, nil)
 	signature, _ := secp256k1.Sign(privateKey, z)
 	der := signature.DER()
 	sigBytes, _ := hex.DecodeString(der)
@@ -202,6 +225,7 @@ func (tx *Transaction) Verify() bool {
 		return false
 	}
 	for i := range tx.TxIns {
+		fmt.Printf("Verifying for input %d\n", i)
 		if !tx.VerifyInput(uint64(i)) {
 			return false
 		}

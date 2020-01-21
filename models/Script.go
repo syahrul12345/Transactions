@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"transactions/opcodes"
 	"transactions/utils"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 //Script represents a list of commands
@@ -167,6 +169,50 @@ func (script *Script) Evaluate(z string) bool {
 			}
 		} else {
 			*stack = append(*stack, command)
+
+			// Special case for p2sh
+			if len(*commands) == 3 {
+				p2shcommands := *commands
+				if p2shcommands[0][0] == 169 && len(p2shcommands[1]) == 20 && p2shcommands[2][0] == 135 {
+					fmt.Println("-----")
+					spew.Dump(p2shcommands)
+					fmt.Println("-----")
+					// pop of 135
+					p2shcommands = p2shcommands[:len(p2shcommands)-1]
+					// get the hash of the redeemscript from the command list
+					h160 := p2shcommands[len(p2shcommands)-1]
+					p2shcommands = p2shcommands[:len(p2shcommands)-1]
+					// pop of 169
+					p2shcommands = p2shcommands[:len(p2shcommands)-1]
+					// Execute OP_HASH160 on the existing stack. This hashes the latest command which is a redeemscript.
+					operation := opcodes.GetOPCODELIST()[169]
+					if !operation.(func(*[][]byte) bool)(stack) {
+						return false
+					}
+					// Add the hash of the redeem script to the top of the stack
+					*stack = append(*stack, h160)
+					operation = opcodes.GetOPCODELIST()[135]
+					// Check if the top two objects in the stack a the same h160. If so this will encode a 1. DO this by calling op_equal
+					if !operation.(func(*[][]byte) bool)(stack) {
+						return false
+					}
+					// Check if the top is now a 1, showing that both h160 are the same
+					operation = opcodes.GetOPCODELIST()[105]
+					if !operation.(func(*[][]byte) bool)(stack) {
+						fmt.Println("Bad p2sh h160")
+						return false
+					}
+					// The top most item in the stack is the redeem script. This is also the command that was just added
+					redeemScriptVarInt := utils.EncodeToLittleEndian(uint64(len(command)))
+					redeemScriptString := hex.EncodeToString(command)
+					redeemScript := redeemScriptVarInt + redeemScriptString
+					// Create a script object for the redeemscript string
+					redeemScriptObject, _ := ParseScript(redeemScript)
+					redeemScriptCommands := redeemScriptObject.Commands
+					// Add redeem script commands to the comamnd list
+					*commands = append(*commands, redeemScriptCommands...)
+				}
+			}
 		}
 	}
 	if len(*stack) == 0 {
@@ -179,4 +225,17 @@ func (script *Script) Evaluate(z string) bool {
 		return false
 	}
 	return true
+}
+
+// ISP2PKH : Checks if the script object follows the p2pkh pattern
+func (script *Script) ISP2PKH() bool {
+	// Check if the command list follow the pattern of OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG
+	commands := script.Commands
+	return len(commands) == 5 && commands[0][0] == 0x76 && commands[1][0] == 0xa9 && len(commands[2]) == 20 && commands[3][0] == 0x88 && commands[4][0] == 0xac
+}
+
+func (script *Script) ISP2SH() bool {
+	//Check if the command list OP_HASH160 <20 byte hash> OP_EQUAL pattern.'''
+	commands := script.Commands
+	return len(commands) == 3 && commands[0][0] == 0xa9 && len(commands[1]) == 20 && commands[2][0] == 0x87
 }
