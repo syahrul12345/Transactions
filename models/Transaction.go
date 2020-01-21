@@ -180,8 +180,8 @@ func (tx *Transaction) SignInput(inputIndex uint64, privateKey string) bool {
 	z := tx.SigHash(inputIndex)
 	signature, _ := secp256k1.Sign(privateKey, z)
 	der := signature.DER()
-	derBytes, _ := hex.DecodeString(der)
-	sigBytes := append(derBytes, byte(1))
+	sigBytes, _ := hex.DecodeString(der)
+	sigBytes = append(sigBytes, byte(1))
 	// Set default compression as true
 	sec := secp256k1.GetSec(privateKey, true)
 	secBytes, _ := hex.DecodeString(sec)

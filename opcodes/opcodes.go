@@ -1069,7 +1069,61 @@ func op_checksigverify(stack *[][]byte, z string) bool {
 }
 
 func op_checkmultisig(stack *[][]byte, z string) bool {
-	// THIS IS NOT IMPLEMENTED YET
+	if len(*stack) < 1 {
+		return false
+	}
+	tempStack := *stack
+	n := decodeNum(tempStack[len(tempStack)-1])
+	tempStack = tempStack[:len(tempStack)-1]
+	if int64(len(tempStack)) < n+1 {
+		return false
+	}
+	// Array to hold n number of pubkeys
+	secPubKeyList := [][]byte{}
+	for i := int64(0); i < n; i++ {
+		pubKey := tempStack[len(tempStack)-1]
+		tempStack = tempStack[:len(tempStack)-1]
+		secPubKeyList = append(secPubKeyList, pubKey)
+	}
+
+	m := decodeNum(tempStack[len(tempStack)-1])
+	tempStack = tempStack[:len(tempStack)-1]
+	if int64(len(tempStack)) < m+1 {
+		return false
+	}
+	//Array to hold m number of singatures
+	derSignatureList := [][]byte{}
+	for j := int64(0); j < m; j++ {
+		derSignature := tempStack[len(tempStack)-1]
+		// remove last byte... as it is SIGHASHALL
+		derSignature = derSignature[0 : len(derSignature)-1]
+		tempStack = tempStack[:len(tempStack)-1]
+		derSignatureList = append(derSignatureList, derSignature)
+	}
+	tempStack = tempStack[:len(tempStack)-1]
+	// We want to check if ALL the signatures can be verified with the pubkeys. Hence we iterate of the derSignatureList
+	for _, sig := range derSignatureList {
+		// We have more signatures than pubkeys
+		if len(secPubKeyList) == 0 {
+			return false
+		}
+		for len(secPubKeyList) > 0 {
+			sec := hex.EncodeToString(secPubKeyList[0])
+			der := hex.EncodeToString(sig)
+			secPubKeyList = secPubKeyList[1:]
+			point := secp256k1.ParseSec(sec)
+			sig := secp256k1.ParseDer(der)
+			res, err := point.Verify(z, sig)
+			if err != nil {
+				return false
+			}
+			if res {
+				// Can verify so we exit
+				break
+			}
+		}
+	}
+	*stack = append(tempStack, encodeNum(1))
 	return true
 }
 

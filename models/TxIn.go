@@ -85,5 +85,6 @@ func (txIn *TxIn) Value(testnet bool, txFetcher *TxFetcher) uint64 {
 func (txIn *TxIn) GetScriptPubKey(testnet bool, txFetcher *TxFetcher) *Script {
 	txOuts := txIn.fetchTx(testnet, txFetcher)
 	txIndex := txIn.PrevIndex
-	return txOuts[txIndex-1].ScriptPubKey
+	// For now because no SEGWIT support this will fail on transactions with version 2
+	return txOuts[txIndex].ScriptPubKey
 }
