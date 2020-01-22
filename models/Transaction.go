@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"strconv"
 	"transactions/utils"
 
@@ -186,7 +185,6 @@ func (tx *Transaction) VerifyInput(index uint64) bool {
 	// Get the signature z of the scriptSig for that input
 	var redeemScript *Script
 	if scriptPubKey.ISP2SH() {
-		fmt.Println("is p2sh")
 		redeemScriptCommand := txIn.ScriptSig.Commands[len(txIn.ScriptSig.Commands)-1]
 		redeemScriptString := utils.EncodeToLittleEndian(uint64(len(redeemScriptCommand))) + hex.EncodeToString(redeemScriptCommand)
 		redeemScript, _ = ParseScript(redeemScriptString)
@@ -225,7 +223,6 @@ func (tx *Transaction) Verify() bool {
 		return false
 	}
 	for i := range tx.TxIns {
-		fmt.Printf("Verifying for input %d\n", i)
 		if !tx.VerifyInput(uint64(i)) {
 			return false
 		}

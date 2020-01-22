@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"transactions/opcodes"
 	"transactions/utils"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 //Script represents a list of commands
@@ -169,14 +167,10 @@ func (script *Script) Evaluate(z string) bool {
 			}
 		} else {
 			*stack = append(*stack, command)
-
 			// Special case for p2sh
 			if len(*commands) == 3 {
 				p2shcommands := *commands
 				if p2shcommands[0][0] == 169 && len(p2shcommands[1]) == 20 && p2shcommands[2][0] == 135 {
-					fmt.Println("-----")
-					spew.Dump(p2shcommands)
-					fmt.Println("-----")
 					// pop of 135
 					p2shcommands = p2shcommands[:len(p2shcommands)-1]
 					// get the hash of the redeemscript from the command list
@@ -210,11 +204,12 @@ func (script *Script) Evaluate(z string) bool {
 					redeemScriptObject, _ := ParseScript(redeemScript)
 					redeemScriptCommands := redeemScriptObject.Commands
 					// Add redeem script commands to the comamnd list
-					*commands = append(*commands, redeemScriptCommands...)
+					*commands = append(p2shcommands, redeemScriptCommands...)
 				}
 			}
 		}
 	}
+
 	if len(*stack) == 0 {
 		return false
 	}
