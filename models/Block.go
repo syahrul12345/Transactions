@@ -2,6 +2,7 @@ package models
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 )
@@ -92,4 +93,32 @@ func (block *Block) hash() []byte {
 		secondRound[i], secondRound[opp] = secondRound[opp], secondRound[i]
 	}
 	return secondRound[:]
+}
+
+//Bip9 Checks if the block implements Bip9
+func (block *Block) Bip9() bool {
+	// Version number is already in little endian
+	version := binary.BigEndian.Uint32(block.Version[:])
+	if version>>29 == 0x001 {
+		return true
+	}
+	return false
+}
+
+//Bip91 Checks if the block implements Bip91
+func (block *Block) Bip91() bool {
+	version := binary.BigEndian.Uint32(block.Version[:])
+	if version>>4&1 == 1 {
+		return true
+	}
+	return false
+}
+
+//Bip141 checks if the block implements Bip141
+func (block *Block) Bip141() bool {
+	version := binary.BigEndian.Uint32(block.Version[:])
+	if version>>1&1 == 1 {
+		return true
+	}
+	return false
 }
