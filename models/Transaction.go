@@ -259,6 +259,48 @@ func (tx *Transaction) Fee() uint64 {
 	return inputSum - outputSum
 }
 
+func (tx *Transaction) IsCoinbase() bool {
+	// Check number of inputs
+	if (len(tx.TxIns)) != 1 {
+		return false
+	}
+	buf := make([]byte, 32)
+	for i := 0; i < 32; i++ {
+		buf[i] = 00
+		i++
+	}
+	if tx.TxIns[0].PrevTx != hex.EncodeToString(buf) {
+		return false
+	}
+	buf = make([]byte, 4)
+	buf = []byte{
+		0xff,
+		0xff,
+		0xff,
+		0xff,
+	}
+	if tx.TxIns[0].PrevIndex != binary.LittleEndian.Uint32(buf) {
+		return false
+	}
+	//Check the prevtxID
+	return true
+}
+
+//CoinbaseHeight will return the height of the transaction
+func (tx *Transaction) CoinbaseHeight() *uint64 {
+	if !tx.IsCoinbase() {
+		return nil
+	}
+	// height is the first command in the scriptsig
+	heightByte := &tx.TxIns[0].ScriptSig.Commands[0]
+	reverse(heightByte)
+	heightString := hex.EncodeToString(*heightByte)
+	height, _ := strconv.ParseUint(heightString, 16, 64)
+	return &height
+	// ReadUVarin reads it in big endian
+
+}
+
 //GetVersion will ge the version of the transaction hash. It takes the version hash as input
 func GetVersion(versionHash string) uint32 {
 	//Parse as a big endian integer

@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/syahrul12345/secp256k1"
-	"github.com/syahrul12345/secp256k1/utils"
 	"strconv"
 	"transactions/models"
+
+	"github.com/syahrul12345/secp256k1"
+	"github.com/syahrul12345/secp256k1/utils"
 )
 
 func main() {
@@ -49,7 +50,9 @@ func main() {
 		TxOuts:   TxOuts,
 		Locktime: 0,
 	}
-	// We will now need to sign the TxObject. The Tx we want to spend now has an empty scriptsig.
-	res := Tx.SignInput(0, secretNumString)
+	res := Tx.IsCoinbase()
 	fmt.Println(res)
+	// We will now need to sign the TxObject. The Tx we want to spend now has an empty scriptsig.
+	// res := Tx.SignInput(0, secretNumString)
+	// fmt.Println(res)
 }
