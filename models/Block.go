@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 )
 
 // Block represents a block in the blockchaibn
@@ -121,4 +122,48 @@ func (block *Block) Bip141() bool {
 		return true
 	}
 	return false
+}
+
+// Target will find the target for the block
+func (block *Block) Target() string {
+	return bitsToTarget(block.Bits)
+}
+
+// Difficulty calculates the current block difficulty in base 10
+func (block *Block) Difficulty() string {
+	target := block.Target()
+	targetBig, _ := big.NewInt(0).SetString(target, 16)
+	// Do for (256**(0x1d-3))/target
+	// a ** (0x1d-3) / target
+	a := big.NewInt(256)
+	// b = (ex1d-3)
+	b := big.NewInt(0x1d - 3)
+	// find c = a ** (b-3) or c = 256**(0x1d-3)
+	c := big.NewInt(0).Exp(a, b, big.NewInt(0))
+	// numerator = 0xffff * C
+	numrator := big.NewInt(0).Mul(big.NewInt(0xffff), c)
+	return big.NewInt(0).Div(numrator, targetBig).Text(10)
+
+}
+
+// CheckPow will check if the block header is smaller than the required target
+func (block *Block) CheckPow() bool {
+	// hash256 operation on the block id
+	byteData, _ := hex.DecodeString(block.Serialize())
+	firstRound := sha256.Sum256(byteData)
+	secondRound := sha256.Sum256(firstRound[:])
+
+	// Reverse the sha & calculate the proof
+	sha := make([]byte, 32)
+	copy(sha, secondRound[:])
+	reverse(&sha)
+	proof := big.NewInt(0).SetBytes(sha)
+	// Calculate the target
+	target, _ := big.NewInt(0).SetString(block.Target(), 16)
+	// Compare
+	fmt.Println(proof)
+	fmt.Println(target)
+	return proof.Cmp(target) == -1
+	// proof := utils.ToBigHex(hex.EncodeToString(sha))
+
 }

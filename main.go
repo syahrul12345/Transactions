@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/big"
 	"transactions/models"
 )
 
@@ -51,5 +53,15 @@ func main() {
 	// fmt.Println(res)
 	blockHeader := "020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d"
 	block := models.ParseBlock(blockHeader)
-	fmt.Println(block.ID())
+	fmt.Println(hex.EncodeToString(block.Bits[:]))
+	exponentByte := block.Bits[len(block.Bits)-1] - 3
+	coefficient := block.Bits[:len(block.Bits)-1]
+	// First term
+	firstTem := big.NewInt(0).SetBytes(coefficient)
+	// Second term
+	// 256 ** (exponent-3)
+	secondTerm := big.NewInt(0).Exp(big.NewInt(256), big.NewInt(0).SetBytes([]byte{exponentByte}), big.NewInt(0))
+	// Answer
+	target := big.NewInt(0).Mul(firstTem, secondTerm)
+	fmt.Println(target.Text(16))
 }

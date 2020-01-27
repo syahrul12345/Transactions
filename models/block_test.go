@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 )
 
@@ -95,5 +96,38 @@ func TestBip141(t *testing.T) {
 	block = ParseBlock(blockHeaderRaw)
 	if block.Bip141() {
 		t.Errorf("Expected teh block to NOT implement bip141 ")
+	}
+}
+
+func TestTarget(t *testing.T) {
+	blockHeaderRaw := "020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d"
+	block := ParseBlock(blockHeaderRaw)
+	get, _ := big.NewInt(0).SetString(block.Target(), 16)
+	want, _ := big.NewInt(0).SetString("13ce9000000000000000000000000000000000000000000", 16)
+	if get.Cmp(want) != 0 {
+		t.Errorf("expected the target of the block to be %s but got %s", want.Text(16), get.Text(16))
+	}
+}
+
+func TestDifficulty(t *testing.T) {
+	blockHeaderRaw := "020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d"
+	block := ParseBlock(blockHeaderRaw)
+	get := block.Difficulty()
+	want := "888171856257"
+	if get != want {
+		t.Errorf("Expected the block diffuculty to be %s but got %s", want, get)
+	}
+}
+
+func TestCheckPow(t *testing.T) {
+	blockHeaderRaw := "04000000fbedbbf0cfdaf278c094f187f2eb987c86a199da22bbb20400000000000000007b7697b29129648fa08b4bcd13c9d5e60abb973a1efac9c8d573c71c807c56c3d6213557faa80518c3737ec1"
+	block := ParseBlock(blockHeaderRaw)
+	if block.CheckPow() != true {
+		t.Errorf("Expected the block with blockheader %s to have a correct checkpow", blockHeaderRaw)
+	}
+	blockHeaderRaw = "04000000fbedbbf0cfdaf278c094f187f2eb987c86a199da22bbb20400000000000000007b7697b29129648fa08b4bcd13c9d5e60abb973a1efac9c8d573c71c807c56c3d6213557faa80518c3737ec0"
+	block = ParseBlock(blockHeaderRaw)
+	if block.CheckPow() == true {
+		t.Errorf("Expected the block with blockheader %s to have a wrong checkpow", blockHeaderRaw)
 	}
 }
