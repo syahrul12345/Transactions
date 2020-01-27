@@ -10,6 +10,10 @@ import (
 	"strconv"
 )
 
+const (
+	twoweeks uint64 = 60 * 60 * 24 * 14
+)
+
 //EncodeToLittleEndian : a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
 //Input string mus be in base 10
 func EncodeToLittleEndian(input uint64) string {
@@ -129,4 +133,86 @@ func FromLittleHex(input string) uint32 {
 //GetFunctionName will get the function name
 func GetFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+// Reverse will reverse a byte array
+func Reverse(heightByte *[]byte) {
+	a := *heightByte
+	for i := len(a)/2 - 1; i >= 0; i-- {
+		opp := len(a) - 1 - i
+		a[i], a[opp] = a[opp], a[i]
+	}
+	*heightByte = a
+}
+
+// BitsToTarget will return a human readable string representing the targert
+func BitsToTarget(bits [4]byte) string {
+	// Make a copy
+	buf := make([]byte, 4)
+	copy(buf, bits[:])
+
+	exponentByte := buf[len(buf)-1] - 3
+	coefficientBits := buf[:len(buf)-1]
+	// Reverse it as it's little endian
+	Reverse(&coefficientBits)
+	coefficientString := hex.EncodeToString(coefficientBits)
+	coefficient, _ := strconv.ParseUint(coefficientString, 16, 24)
+	// First term
+	firstTem := big.NewInt(0).SetUint64(coefficient)
+	// Second term
+	// 256 ** (exponent-3)
+	secondTerm := big.NewInt(0).Exp(big.NewInt(256), big.NewInt(0).SetBytes([]byte{exponentByte}), big.NewInt(0))
+	// Answer
+	target := big.NewInt(0).Mul(firstTem, secondTerm)
+	return target.Text(16)
+}
+
+// TargetToBits accepts a hexadecimal string and convert it to a byte array of size4
+func TargetToBits(target string) [4]byte {
+	rawBytes, _ := hex.DecodeString(target)
+	var exponent byte
+	var coefficient [3]byte
+	if rawBytes[0] > 0x7f {
+		// Exponent is the length of the rawbytes
+		exponent = byte(len(rawBytes) + 1)
+		coefficient = [3]byte{
+			0x00,
+			rawBytes[0],
+			rawBytes[1],
+		}
+	} else {
+		exponent = byte(len(rawBytes))
+		coefficient = [3]byte{
+			rawBytes[0],
+			rawBytes[1],
+			rawBytes[2],
+		}
+	}
+	// Reverse it, it's in little endian
+	buf := [4]byte{
+		coefficient[2],
+		coefficient[1],
+		coefficient[0],
+		exponent,
+	}
+	return buf
+}
+
+// CalculateNewBits will calcualte the new bits using the previousBits and the timedifferential
+func CalculateNewBits(previousBits [4]byte, timeDifferential uint64) [4]byte {
+	if timeDifferential > twoweeks*4 {
+		timeDifferential = twoweeks * 4
+	}
+	if timeDifferential < twoweeks/4 {
+		timeDifferential = timeDifferential / 4
+	}
+	previousTarget, _ := big.NewInt(0).SetString(BitsToTarget(previousBits), 16)
+	timeDifferentialBig := big.NewInt(0).SetUint64(timeDifferential)
+	twoWeeksBig := big.NewInt(0).SetUint64(twoweeks)
+	// Time differential divided by 2 weeks
+	first := big.NewInt(0).Mul(previousTarget, timeDifferentialBig)
+	//  new target = previoustarget * timedifferentialdivided
+	newTarget := big.NewInt(0).Div(first, twoWeeksBig)
+	// previousTarget, _ := strconv.ParseUint(BitsToTarget(previousBits), 16, 32)
+	return TargetToBits(newTarget.Text(16))
 }

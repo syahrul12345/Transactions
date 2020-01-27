@@ -229,6 +229,7 @@ func (script *Script) ISP2PKH() bool {
 	return len(commands) == 5 && commands[0][0] == 0x76 && commands[1][0] == 0xa9 && len(commands[2]) == 20 && commands[3][0] == 0x88 && commands[4][0] == 0xac
 }
 
+// ISP2SH : Checks if the script object follows the p2sh pattern
 func (script *Script) ISP2SH() bool {
 	//Check if the command list OP_HASH160 <20 byte hash> OP_EQUAL pattern.'''
 	commands := script.Commands

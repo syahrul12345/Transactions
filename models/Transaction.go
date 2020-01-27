@@ -259,6 +259,7 @@ func (tx *Transaction) Fee() uint64 {
 	return inputSum - outputSum
 }
 
+//IsCoinbase will check if the transaction is a coinbase transaction
 func (tx *Transaction) IsCoinbase() bool {
 	// Check number of inputs
 	if (len(tx.TxIns)) != 1 {
@@ -293,7 +294,7 @@ func (tx *Transaction) CoinbaseHeight() *uint64 {
 	}
 	// height is the first command in the scriptsig
 	heightByte := &tx.TxIns[0].ScriptSig.Commands[0]
-	reverse(heightByte)
+	utils.Reverse(heightByte)
 	heightString := hex.EncodeToString(*heightByte)
 	height, _ := strconv.ParseUint(heightString, 16, 64)
 	return &height

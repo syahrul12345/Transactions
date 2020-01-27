@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"transactions/utils"
 )
 
 // Block represents a block in the blockchaibn
@@ -39,10 +40,10 @@ func ParseBlock(txDump string) *Block {
 	bitBuf := buf[72:76]
 	nonceBuf := buf[76:]
 
-	reverse(&verBuf)
-	reverse(&prevBlkBuf)
-	reverse(&merkleRootBuf)
-	reverse(&timeStampBuf)
+	utils.Reverse(&verBuf)
+	utils.Reverse(&prevBlkBuf)
+	utils.Reverse(&merkleRootBuf)
+	utils.Reverse(&timeStampBuf)
 
 	copy(Version[:], verBuf)
 	copy(PrevBlock[:], prevBlkBuf)
@@ -73,10 +74,10 @@ func (block *Block) Serialize() string {
 	prevBlkBuf := tempPrevBlk[:]
 	merkleRootBuf := tempMerkleRoot[:]
 	timeStampBuf := tempTimeStamp[:]
-	reverse(&blockVerBuf)
-	reverse(&prevBlkBuf)
-	reverse(&merkleRootBuf)
-	reverse(&timeStampBuf)
+	utils.Reverse(&blockVerBuf)
+	utils.Reverse(&prevBlkBuf)
+	utils.Reverse(&merkleRootBuf)
+	utils.Reverse(&timeStampBuf)
 	return hex.EncodeToString(blockVerBuf) + hex.EncodeToString(prevBlkBuf) + hex.EncodeToString(merkleRootBuf) + hex.EncodeToString(timeStampBuf) + hex.EncodeToString(block.Bits[:]) + hex.EncodeToString(block.Nonce[:])
 }
 
@@ -126,7 +127,7 @@ func (block *Block) Bip141() bool {
 
 // Target will find the target for the block
 func (block *Block) Target() string {
-	return bitsToTarget(block.Bits)
+	return utils.BitsToTarget(block.Bits)
 }
 
 // Difficulty calculates the current block difficulty in base 10
@@ -156,13 +157,11 @@ func (block *Block) CheckPow() bool {
 	// Reverse the sha & calculate the proof
 	sha := make([]byte, 32)
 	copy(sha, secondRound[:])
-	reverse(&sha)
+	utils.Reverse(&sha)
 	proof := big.NewInt(0).SetBytes(sha)
 	// Calculate the target
 	target, _ := big.NewInt(0).SetString(block.Target(), 16)
 	// Compare
-	fmt.Println(proof)
-	fmt.Println(target)
 	return proof.Cmp(target) == -1
 	// proof := utils.ToBigHex(hex.EncodeToString(sha))
 
