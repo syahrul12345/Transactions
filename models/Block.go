@@ -17,6 +17,7 @@ type Block struct {
 	TimeStamp  [4]byte
 	Bits       [4]byte
 	Nonce      [4]byte
+	TxHashes   []string
 }
 
 //ParseBlock will parse a blockHeader and return the corresponding block
@@ -59,6 +60,7 @@ func ParseBlock(txDump string) *Block {
 		TimeStamp,
 		Bits,
 		Nonce,
+		[]string{},
 	}
 }
 
@@ -164,5 +166,19 @@ func (block *Block) CheckPow() bool {
 	// Compare
 	return proof.Cmp(target) == -1
 	// proof := utils.ToBigHex(hex.EncodeToString(sha))
+}
 
+// ValidateMerkleRoot will validate the merkle root of the block
+func (block *Block) ValidateMerkleRoot() bool {
+	reversed := []string{}
+	for _, hash := range block.TxHashes {
+		rawHash, _ := hex.DecodeString(hash)
+		utils.Reverse(&rawHash)
+		reversed = append(reversed, hex.EncodeToString(rawHash))
+	}
+	root := utils.MerkleRoot(reversed)
+	rootRaw, _ := hex.DecodeString(root)
+	utils.Reverse(&rootRaw)
+	root = hex.EncodeToString(rootRaw)
+	return root == hex.EncodeToString(block.MerkleRoot[:])
 }

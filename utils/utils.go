@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"math/big"
@@ -215,4 +216,42 @@ func CalculateNewBits(previousBits [4]byte, timeDifferential uint64) [4]byte {
 	newTarget := big.NewInt(0).Div(first, twoWeeksBig)
 	// previousTarget, _ := strconv.ParseUint(BitsToTarget(previousBits), 16, 32)
 	return TargetToBits(newTarget.Text(16))
+}
+
+// merkleParent calculates the parent of two hashes
+func merkleParent(hash0 []byte, hash1 []byte) string {
+	buf := append(hash0, hash1...)
+	first := sha256.Sum256(buf)
+	second := sha256.Sum256(first[:])
+	return hex.EncodeToString(second[:])
+}
+
+// merkleParentLevel calculates the MerkleParents of every two hashes in a list of hahses, and stores the parents.
+// Input should be a list of hashes in stirng
+func merkleParentLevel(hashes []string) []string {
+	hashesBytes := [][]byte{}
+	for _, hash := range hashes {
+		hashByte, _ := hex.DecodeString(hash)
+		hashesBytes = append(hashesBytes, hashByte)
+	}
+	// Check if it is an odd length
+	if len(hashesBytes)%2 == 1 {
+		lastObject := hashesBytes[len(hashesBytes)-1]
+		hashesBytes = append(hashesBytes, lastObject)
+	}
+	parents := []string{}
+	for i := 0; i < len(hashesBytes); i = i + 2 {
+		parent := merkleParent(hashesBytes[i], hashesBytes[i+1])
+		parents = append(parents, parent)
+	}
+	return parents
+}
+
+// MerkleRoot returns the merkle root, a single hash from a set of hashes
+func MerkleRoot(hashes []string) string {
+	currentLevel := hashes
+	for len(currentLevel) > 1 {
+		currentLevel = merkleParentLevel(currentLevel)
+	}
+	return currentLevel[0]
 }
