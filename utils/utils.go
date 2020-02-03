@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"reflect"
 	"runtime"
@@ -254,4 +255,32 @@ func MerkleRoot(hashes []string) string {
 		currentLevel = merkleParentLevel(currentLevel)
 	}
 	return currentLevel[0]
+}
+
+// BytesToBits converts a bytearray to a byte array of only 1 and 0
+func BytesToBits(bytes []byte) []byte {
+	var bitsBuf []byte
+	for _, someByte := range bytes {
+		for i := 0; i < 8; i++ {
+			bitsBuf = append(bitsBuf, someByte&1)
+			someByte >>= 1
+		}
+	}
+	return bitsBuf
+}
+
+// BitsToBytes converts a byte array of only 1 to 0 to the a proper byte array
+func BitsToBytes(bits []byte) *[]byte {
+	if len(bits)%8 != 0 {
+		fmt.Println("bit_field does not have a length that is divisible by 8")
+		return nil
+	}
+	buf := make([]byte, len(bits)/8)
+	for i, bit := range bits {
+		byteIndex, bitIndex := i/8, i%8
+		if bit == 1 {
+			buf[byteIndex] |= 1 << bitIndex
+		}
+	}
+	return &buf
 }
