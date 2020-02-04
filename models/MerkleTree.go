@@ -1,7 +1,10 @@
 package models
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math"
+	"transactions/utils"
 )
 
 // MerkleTree represents the MerkleTree
@@ -16,7 +19,7 @@ type MerkleTree struct {
 	CurrentIndex uint64
 }
 
-// CreateMerkleTree creates a merkle tree with the number of nodes that we want
+// CreateMerkleTree creates a merkle tree with the number of leaf nodes
 func CreateMerkleTree(total uint64) *MerkleTree {
 	// First we create an empty binary tree
 	// We have log2total levels
@@ -94,4 +97,64 @@ func (merkleTree *MerkleTree) IsLeaf() bool {
 //RightExists check if there is a Right node to the current node
 func (merkleTree *MerkleTree) RightExists() bool {
 	return len(merkleTree.Nodes[merkleTree.CurrentDepth+1]) > int(merkleTree.CurrentIndex*2+1)
+}
+
+// Populate the merkle tree
+func (merkleTree *MerkleTree) Populate(flagBits []byte, hashes [][32]byte) {
+	for merkleTree.Root() == "" {
+		if merkleTree.IsLeaf() {
+			flagBits = flagBits[1:]
+			hash := hashes[0]
+			hashes = hashes[1:]
+			merkleTree.SetCurrentNode(hex.EncodeToString(hash[:]))
+			merkleTree.Up()
+		} else {
+			leftHash := merkleTree.GetLeftNode()
+			// There is no left hash, so the hash can be in the hashes input or it might need to be calculated
+			if leftHash == "" {
+				// If 0, means it's in the hashes input
+				flag := flagBits[0]
+				flagBits = flagBits[1:]
+				if flag == 0 {
+					hash := hashes[0]
+					hashes = hashes[1:]
+					merkleTree.SetCurrentNode(hex.EncodeToString(hash[:]))
+					// Pop from the flagbits
+					merkleTree.Up()
+				} else {
+					// Move the pointer to the left child node, we will fill it up in the next iteration
+					merkleTree.Left()
+				}
+			} else if merkleTree.RightExists() == true {
+				// There is a left hash, we check if the right node exists
+				rightHash := merkleTree.GetRightNode()
+				// Check if the rightNode has a hash
+				if rightHash == "" {
+					// It doesnt have a hash, so we move the pointer here
+					merkleTree.Right()
+				} else {
+					// We have the left hash (it wont enter this part of the code if there is no left hash) and the right hash, thus
+					// we can calculate the hash of the current node
+					leftHashBytes, _ := hex.DecodeString(leftHash)
+					rightHashBytes, _ := hex.DecodeString(rightHash)
+					merkleTree.SetCurrentNode(utils.MerkleParent(leftHashBytes, rightHashBytes))
+					// We move up
+					merkleTree.Up()
+				}
+			} else {
+				// This part handles case where we have the left child node, but there is no right child node!
+				leftHashBytes, _ := hex.DecodeString(leftHash)
+				merkleTree.SetCurrentNode(utils.MerkleParent(leftHashBytes, leftHashBytes))
+				merkleTree.Up()
+			}
+		}
+	}
+	if len(hashes) != 0 {
+		fmt.Println("Not all hashes are consumed!")
+	}
+	for _, bit := range flagBits {
+		if bit != 0 {
+			fmt.Println("Not all bits are consumed")
+		}
+	}
 }

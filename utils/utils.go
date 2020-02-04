@@ -219,17 +219,17 @@ func CalculateNewBits(previousBits [4]byte, timeDifferential uint64) [4]byte {
 	return TargetToBits(newTarget.Text(16))
 }
 
-// merkleParent calculates the parent of two hashes
-func merkleParent(hash0 []byte, hash1 []byte) string {
+// MerkleParent calculates the parent of two hashes
+func MerkleParent(hash0 []byte, hash1 []byte) string {
 	buf := append(hash0, hash1...)
 	first := sha256.Sum256(buf)
 	second := sha256.Sum256(first[:])
 	return hex.EncodeToString(second[:])
 }
 
-// merkleParentLevel calculates the MerkleParents of every two hashes in a list of hahses, and stores the parents.
+// MerkleParentLevel calculates the MerkleParents of every two hashes in a list of hahses, and stores the parents.
 // Input should be a list of hashes in stirng
-func merkleParentLevel(hashes []string) []string {
+func MerkleParentLevel(hashes []string) []string {
 	hashesBytes := [][]byte{}
 	for _, hash := range hashes {
 		hashByte, _ := hex.DecodeString(hash)
@@ -242,7 +242,7 @@ func merkleParentLevel(hashes []string) []string {
 	}
 	parents := []string{}
 	for i := 0; i < len(hashesBytes); i = i + 2 {
-		parent := merkleParent(hashesBytes[i], hashesBytes[i+1])
+		parent := MerkleParent(hashesBytes[i], hashesBytes[i+1])
 		parents = append(parents, parent)
 	}
 	return parents
@@ -252,7 +252,7 @@ func merkleParentLevel(hashes []string) []string {
 func MerkleRoot(hashes []string) string {
 	currentLevel := hashes
 	for len(currentLevel) > 1 {
-		currentLevel = merkleParentLevel(currentLevel)
+		currentLevel = MerkleParentLevel(currentLevel)
 	}
 	return currentLevel[0]
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"transactions/utils"
@@ -8,16 +9,15 @@ import (
 
 // MerkleBlock represetns a merkle block
 type MerkleBlock struct {
-	Version      [4]byte
-	PrevBlock    [32]byte
-	MerkleRoot   [32]byte
-	TimeStamp    [4]byte
-	Bits         [4]byte
-	Nonce        [4]byte
-	Total        [4]byte
-	NumberHashes uint64
-	Hashes       [][32]byte
-	Flag         []byte
+	Version    [4]byte
+	PrevBlock  [32]byte
+	MerkleRoot [32]byte
+	TimeStamp  [4]byte
+	Bits       [4]byte
+	Nonce      [4]byte
+	Total      [4]byte
+	Hashes     [][32]byte
+	Flag       []byte
 }
 
 //ParseMerkleBlock will parse the merkleblock dump string
@@ -66,6 +66,7 @@ func ParseMerkleBlock(merkleblockdump string) *MerkleBlock {
 		// 32byte bytearray to hold the raw bytes
 		var tempHashBuf [32]byte
 		tempHash := rawBytes[:32]
+		utils.Reverse(&tempHash)
 		copy(tempHashBuf[:], tempHash)
 		hashesBuf = append(hashesBuf, tempHashBuf)
 		// need to change new string
@@ -82,8 +83,32 @@ func ParseMerkleBlock(merkleblockdump string) *MerkleBlock {
 		Bits,
 		Nonce,
 		Total,
-		numHashes,
 		hashesBuf,
 		flag,
 	}
+}
+
+// IsValid Check if the txhahses of the merkleblock can form back the merkleroot
+func (merkleBlock *MerkleBlock) IsValid() bool {
+	flagBits := utils.BytesToBits(merkleBlock.Flag)
+	total := binary.BigEndian.Uint32(merkleBlock.Total[:])
+
+	tree := CreateMerkleTree(uint64(total))
+	var tempHashesBuf [][32]byte
+	for _, hash := range merkleBlock.Hashes {
+		tempHash := hash[:]
+		utils.Reverse(&tempHash)
+		var tempHashBuf [32]byte
+		copy(tempHashBuf[:], tempHash)
+		tempHashesBuf = append(tempHashesBuf, tempHashBuf)
+	}
+	tree.Populate(flagBits, tempHashesBuf)
+	res := tree.Root()
+	// reverse the calculated merkle tree
+	resBytes, _ := hex.DecodeString(res)
+	utils.Reverse(&resBytes)
+	resString := hex.EncodeToString(resBytes)
+	merkleRoot := hex.EncodeToString(merkleBlock.MerkleRoot[:])
+
+	return resString == merkleRoot
 }

@@ -28,7 +28,7 @@ func TestCalculateNewBits(t *testing.T) {
 func TestMerkleParent(t *testing.T) {
 	hash0, _ := hex.DecodeString("c117ea8ec828342f4dfb0ad6bd140e03a50720ece40169ee38bdc15d9eb64cf5")
 	hash1, _ := hex.DecodeString("c131474164b412e3406696da1ee20ab0fc9bf41c8f05fa8ceea7a08d672d7cc5")
-	get := merkleParent(hash0, hash1)
+	get := MerkleParent(hash0, hash1)
 	want := "8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd"
 	if get != want {
 		t.Errorf("Expected the merkle parent to be %s but got %s", want, get)
@@ -58,7 +58,7 @@ func TestMerkleParentLevel(t *testing.T) {
 		"43e7274e77fbe8e5a42a8fb58f7decdb04d521f319f332d88e6b06f8e6c09e27",
 		"1796cd3ca4fef00236e07b723d3ed88e1ac433acaaa21da64c4b33c946cf3d10",
 	}
-	res := merkleParentLevel(hexHashes)
+	res := MerkleParentLevel(hexHashes)
 	for i, wantHash := range wantHashes {
 		if res[i] != wantHash {
 			t.Errorf("Expected the hash to be %s but got %s", wantHash, res[i])
