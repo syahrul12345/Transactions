@@ -112,7 +112,7 @@ func (script *Script) RawSerialize() string {
 			result = result + command
 		}
 	}
-	hex := utils.EncodeToLittleEndian(uint64(totalLen))
+	hex := utils.EncodeVarInt(uint64(totalLen))
 	return hex + result
 }
 
@@ -197,7 +197,7 @@ func (script *Script) Evaluate(z string) bool {
 						return false
 					}
 					// The top most item in the stack is the redeem script. This is also the command that was just added
-					redeemScriptVarInt := utils.EncodeToLittleEndian(uint64(len(command)))
+					redeemScriptVarInt := utils.EncodeVarInt(uint64(len(command)))
 					redeemScriptString := hex.EncodeToString(command)
 					redeemScript := redeemScriptVarInt + redeemScriptString
 					// Create a script object for the redeemscript string

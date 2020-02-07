@@ -16,9 +16,9 @@ const (
 	twoweeks uint64 = 60 * 60 * 24 * 14
 )
 
-//EncodeToLittleEndian : a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
+//EncodeVarInt : a large number represented from as an uint64 into hexadecimal litte-endian format in stirng represetnation.
 //Input string mus be in base 10
-func EncodeToLittleEndian(input uint64) string {
+func EncodeVarInt(input uint64) string {
 	// Some of the nubmers huge, use bigint
 	someNumber := strconv.FormatUint(input, 10)
 	bigInt, _ := big.NewInt(0).SetString(someNumber, 10)

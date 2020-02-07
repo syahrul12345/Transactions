@@ -60,13 +60,13 @@ func (tx *Transaction) Serialize() string {
 	//Encode the version
 	res = hex.EncodeToString(buf)
 	//Encode the amount of txin
-	res = res + utils.EncodeToLittleEndian(uint64(len(tx.TxIns)))
+	res = res + utils.EncodeVarInt(uint64(len(tx.TxIns)))
 	//Encode the txIns
 	for _, txIn := range tx.TxIns {
 		res = res + txIn.Serialize()
 	}
 	//Encode the amount of txout
-	res = res + utils.EncodeToLittleEndian(uint64(len(tx.TxOuts)))
+	res = res + utils.EncodeVarInt(uint64(len(tx.TxOuts)))
 	for _, txOut := range tx.TxOuts {
 		res = res + txOut.Serialize()
 	}
@@ -103,7 +103,7 @@ func (tx *Transaction) SigHash(index uint64, redeemScript *Script) string {
 	binary.LittleEndian.PutUint32(buf, tx.Version)
 
 	//Append var int for txin
-	varintString := utils.EncodeToLittleEndian(uint64(len(tx.TxIns)))
+	varintString := utils.EncodeVarInt(uint64(len(tx.TxIns)))
 	varIntByteArray, _ := hex.DecodeString(varintString)
 	buf = append(buf, varIntByteArray...)
 	txFetcher := CreateTxFetcher("https://blockchain.info/rawtx/", tx.Testnet)
@@ -150,7 +150,7 @@ func (tx *Transaction) SigHash(index uint64, redeemScript *Script) string {
 
 	}
 	//Append var int for txout
-	varintString = utils.EncodeToLittleEndian(uint64(len(tx.TxOuts)))
+	varintString = utils.EncodeVarInt(uint64(len(tx.TxOuts)))
 	varIntByteArray, _ = hex.DecodeString(varintString)
 	buf = append(buf, varIntByteArray...)
 	for _, txOut := range tx.TxOuts {
@@ -186,7 +186,7 @@ func (tx *Transaction) VerifyInput(index uint64) bool {
 	var redeemScript *Script
 	if scriptPubKey.ISP2SH() {
 		redeemScriptCommand := txIn.ScriptSig.Commands[len(txIn.ScriptSig.Commands)-1]
-		redeemScriptString := utils.EncodeToLittleEndian(uint64(len(redeemScriptCommand))) + hex.EncodeToString(redeemScriptCommand)
+		redeemScriptString := utils.EncodeVarInt(uint64(len(redeemScriptCommand))) + hex.EncodeToString(redeemScriptCommand)
 		redeemScript, _ = ParseScript(redeemScriptString)
 	} else {
 		redeemScript = nil
